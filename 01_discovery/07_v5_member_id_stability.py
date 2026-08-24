@@ -26,27 +26,28 @@ import config as cfg
 MEMBERSHIP_SPEC = {
     "member_id": ([r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"],
                   "membership.member_id"),
-    "period": ([r"(cvrg|covg|coverage|elig|eligibility|mbrshp|membership)_"
+    "eff_dt": ([r"eff_dt",
+                r"(cvrg|covg|coverage|elig|eligibility|mbrshp|membership)_"
                 r"(month|mth|mo|dt|date|yr_mo)",
                 r"(eff|start|begin)_(dt|date)",
                 r".*(month|yr_mo).*", r".*eff.*dt.*"],
-               "membership.period"),
+               "membership.eff_dt"),
 }
 
 CLAIM_SPEC = {
     "member_id": ([r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"],
                   "claim_line.member_id"),
-    "service_date": ([r"srv_start_dt",
+    "srv_start_dt": ([r"srv_start_dt",
                       r"(srv|svc|service)_(start_)?(dt|date)",
                       r".*srv.*start.*dt", r".*service.*start.*date"],
-                     "claim_line.service_date"),
+                     "claim_line.srv_start_dt"),
 }
 
 
 def main():
     print("07_v5_member_id_stability")
     m = cfg.resolved(cfg.T_MEMBERSHIP, MEMBERSHIP_SPEC)
-    mdt = cfg.date_expr(cfg.T_MEMBERSHIP, m["period"])
+    mdt = cfg.date_expr(cfg.T_MEMBERSHIP, m["eff_dt"])
     print("    membership date expression -> {}".format(mdt))
 
     grain_sql = """
@@ -133,7 +134,7 @@ def main():
           .format(cfg.YEAR_2, int(r["full_both_years"])))
 
     c = cfg.resolved(cfg.T_CLAIM_LINE, CLAIM_SPEC)
-    cdt = cfg.date_expr(cfg.T_CLAIM_LINE, c["service_date"])
+    cdt = cfg.date_expr(cfg.T_CLAIM_LINE, c["srv_start_dt"])
 
     cross_sql = """
     WITH clm AS (

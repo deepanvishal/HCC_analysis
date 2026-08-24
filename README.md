@@ -55,11 +55,11 @@ and remove its NOT YET VERIFIED banner.
 ```
 python 01_discovery/03_v1_dx_positions.py            V1  multiple diagnosis positions
 python 01_discovery/04_v2_dx_per_claim_line.py       V2  fan-out is real
-python 01_discovery/05_v3_position1_vs_topline.py    V3  position 1 matches the old field
+python 01_discovery/05_v3_seq1_vs_pri_icd9_dx_cd.py  V3  sequence_id 1 matches pri_icd9_dx_cd
 python 01_discovery/06_v4_year_completeness.py       V4  both years equally settled
 python 01_discovery/07_v5_member_id_stability.py     V5  identifiers stable across years
 python 01_discovery/08_v6_join_integrity.py          V6  the visit link holds
-python 01_discovery/09_v7_recovery_rate.py           V7  what the extra positions recover
+python 01_discovery/09_v7_diabetes_share.py          V7  what the extra positions add
 python 01_discovery/10_v8_code_mapping.py            V8  codes map to the condition list
 python 01_discovery/99_gate1_summary.py              sign-off status
 ```

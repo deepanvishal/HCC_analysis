@@ -37,7 +37,7 @@ question.
 AHRQ CCIR v2026.1, the long-term-condition flag. Named in methodology
 Appendix A without a location.
 **Blocks:** the "any long-term condition" half of V7 — the figure that compares
-against the 29% the old extract reports. `09_v7_recovery_rate.py` measures
+against the 29% the old extract reports. `09_v7_diabetes_share.py` measures
 diabetes only and says so in its output.
 **Status:** Open
 
@@ -85,7 +85,7 @@ the value set (`11_value_profiles.py`).
 **Status:** Open
 
 ### Q8. Where is member state?
-Florida scope, methodology step 5. `09_v7_recovery_rate.py` applies a state
+Florida scope, methodology step 5. `09_v7_diabetes_share.py` applies a state
 filter only if it resolves a state column, and prints that the figures are
 all-states when it cannot.
 **Update 2026-08-24:** operator attests `state_postal_cd` on the membership
@@ -100,7 +100,7 @@ profiles them, and the FL filter is only trustworthy once 'FL' is seen there.
 
 ### Q9. Which business line codes are Medicare and which are commercial?
 Methodology step 5 requires the two books never be combined.
-`09_v7_recovery_rate.py` reports raw business line values and does not assign
+`09_v7_diabetes_share.py` reports raw business line values and does not assign
 them, because guessing here would silently blend the books.
 **Blocks:** V7's pass criterion, which has separate bands per book, and every
 later figure.
@@ -108,7 +108,7 @@ later figure.
 **Status:** Open
 
 ### Q10. Which HCC values are diabetes?
-`09_v7_recovery_rate.py` derives the set from the mapping table: by
+`09_v7_diabetes_share.py` derives the set from the mapping table: by
 description match where a description column exists, otherwise by ICD-10
 prefix E08-E13 (DD-02 — the confirmed mapping columns carry no description).
 It prints the derived HCCs with evidence. The derived set needs confirming

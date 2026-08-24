@@ -22,9 +22,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config as cfg
 
 SPEC = {
-    "sequence": ([r"sequence_id",
-                  r"(icd9_)?(dx_)?seq(uence)?_(id|nbr|num|no|cd)",
-                  r".*seq.*"], "dx.sequence"),
+    "sequence_id": ([r"sequence_id",
+                     r"(icd9_)?(dx_)?seq(uence)?_(id|nbr|num|no|cd)",
+                     r".*seq.*"], "dx.sequence_id"),
     "claim_line_id": ([r"claim_line_id",
                        r"clm_ln_id",
                        r".*clm_ln.*id", r".*claim_line.*id"], "dx.claim_line_id"),
@@ -36,28 +36,28 @@ def main():
     c = cfg.resolved(cfg.T_DX, SPEC)
 
     sql = """
-    SELECT SAFE_CAST({seq} AS INT64)          AS dx_position,
+    SELECT SAFE_CAST({seq} AS INT64)          AS sequence_id,
            COUNT(*)                           AS dx_rows,
            COUNT(DISTINCT {cll})              AS claim_lines
     FROM `{t}`
     GROUP BY 1
     ORDER BY 1
-    """.format(seq=c["sequence"], cll=c["claim_line_id"], t=cfg.T_DX)
+    """.format(seq=c["sequence_id"], cll=c["claim_line_id"], t=cfg.T_DX)
 
     df = cfg.run_query(sql, label="V1")
     cfg.write_csv(df, "v1_dx_positions.csv")
 
-    uncastable = df[df["dx_position"].isna()]["dx_rows"].sum()
-    valid = df[df["dx_position"].notna()]
+    uncastable = df[df["sequence_id"].isna()]["dx_rows"].sum()
+    valid = df[df["sequence_id"].notna()]
     if not len(valid):
         raise SystemExit("no diagnosis position cast to an integer. "
-                         "Column {} is not a sequence.".format(c["sequence"]))
+                         "Column {} is not a sequence.".format(c["sequence_id"]))
 
     total = valid["dx_rows"].sum()
-    max_pos = int(valid["dx_position"].max())
-    min_pos = int(valid["dx_position"].min())
+    max_pos = int(valid["sequence_id"].max())
+    min_pos = int(valid["sequence_id"].min())
     n_pos = len(valid)
-    share_pos1 = valid[valid["dx_position"] == 1]["dx_rows"].sum() / total
+    share_pos1 = valid[valid["sequence_id"] == 1]["dx_rows"].sum() / total
 
     print("")
     print("  distinct positions   {}".format(n_pos))
@@ -69,7 +69,7 @@ def main():
     print("  top positions by volume:")
     for _, r in valid.head(15).iterrows():
         print("    {:>3}  {:>15,} rows  {:>15,} claim lines"
-              .format(int(r["dx_position"]), int(r["dx_rows"]),
+              .format(int(r["sequence_id"]), int(r["dx_rows"]),
                       int(r["claim_lines"])))
 
     if n_pos <= 1:

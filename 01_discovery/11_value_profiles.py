@@ -4,7 +4,7 @@ WHAT   Distinct-value profiles for the code columns whose value sets nobody has
        until these come back.
 GRAIN  one row per (table, column, value)
 INPUTS config.T_CLAIM_LINE, config.T_DX, config.T_MEMBERSHIP,
-       config.T_PROVIDER_DM, config.T_TOPLINE
+       config.T_PROVIDER_DM, config.T_A870800_2025_CLAIMS
 OUTPUT 01_discovery/output/11_value_profiles.csv
 
 Not a pass/fail check. Raw values only; no value is mapped or interpreted here.
@@ -26,29 +26,29 @@ LIMIT = 10000
 TARGETS = [
     ("EMIS_CLAIM_LINE", cfg.T_CLAIM_LINE, "plc_srv_cd",
      [r"plc_srv_cd", r"(plc|place)_(of_)?(srv|service)_cd",
-      r".*plc.*srv.*cd", r".*pos.*cd"], "claim_line.plc_srv"),
+      r".*plc.*srv.*cd", r".*pos.*cd"], "claim_line.plc_srv_cd"),
     ("EMIS_CLAIM_LINE", cfg.T_CLAIM_LINE, "plc_srv_ctg_cd",
      [r"plc_srv_ctg_cd", r".*plc.*srv.*ctg.*", r".*place.*ctg.*"],
-     "claim_line.plc_srv_ctg"),
+     "claim_line.plc_srv_ctg_cd"),
     ("EMIS_CLAIM_LINE", cfg.T_CLAIM_LINE, "business_ln_cd",
      [r"business_ln_cd", r"(business|bus)_(line|ln)_(cd|code)",
-      r".*business.*ln.*"], "claim_line.business_line"),
+      r".*business.*ln.*"], "claim_line.business_ln_cd"),
     ("EMIS_CLAIM_LINE", cfg.T_CLAIM_LINE, "med_cost_ctg_cd",
-     [r"med_cost_ctg_cd", r".*med.*cost.*ctg.*"], "claim_line.med_cost_ctg"),
+     [r"med_cost_ctg_cd", r".*med.*cost.*ctg.*"], "claim_line.med_cost_ctg_cd"),
     ("CLM_LN_X_ICD9_DX", cfg.T_DX, "poa_cd",
-     [r"poa_cd", r".*poa.*"], "dx.poa"),
+     [r"poa_cd", r".*poa.*"], "dx.poa_cd"),
     ("membership", cfg.T_MEMBERSHIP, "business_ln_cd",
      [r"business_ln_cd", r"(business|bus)_(line|ln)_(cd|code)",
-      r".*business.*ln.*"], "membership.business_line"),
+      r".*business.*ln.*"], "membership.business_ln_cd"),
     ("membership", cfg.T_MEMBERSHIP, "medical_ind",
      [r"medical_ind", r".*medical.*ind.*"], "membership.medical_ind"),
     ("membership", cfg.T_MEMBERSHIP, "state_postal_cd",
      [r"state_postal_cd", r"(mbr_)?(state|st)_(cd|code|abbr)", r"state"],
-     "membership.state"),
+     "membership.state_postal_cd"),
     ("PROVIDER_DM", cfg.T_PROVIDER_DM, "specialty_ctg_cd",
-     [r"specialty_ctg_cd", r".*specialty.*"], "provider.specialty"),
-    ("A870800_2025_claims", cfg.T_TOPLINE, "specialty_ctg_cd",
-     [r"specialty_ctg_cd", r".*specialty.*"], "topline.specialty"),
+     [r"specialty_ctg_cd", r".*specialty.*"], "provider.specialty_ctg_cd"),
+    ("A870800_2025_claims", cfg.T_A870800_2025_CLAIMS, "specialty_ctg_cd",
+     [r"specialty_ctg_cd", r".*specialty.*"], "a870800_2025_claims.specialty_ctg_cd"),
 ]
 
 

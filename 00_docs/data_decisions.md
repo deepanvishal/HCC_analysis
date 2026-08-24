@@ -64,11 +64,27 @@ window is 2023-2024.
 **Rationale:** `pri_icd9_dx_cd` on the source claim line is the same top-line
 fact the extract carried forward, at the grain the comparison needs, in a table
 whose location is confirmed. It also makes V7 a same-population comparison:
-both arms count over identical claim lines, so the lift measures only the extra
-positions.
+both arms count over identical claim lines, so the difference measures only
+the extra positions.
 
-**Affects:** V3 agreement rate; V7 top-line prevalence and lift. The 29%
-any-HCC figure from the old extract remains context only.
+**Depends on:** `EMIS_CLAIM_LINE.claim_line_id` — one of the three names with
+no seeded default, never exercised in any query, flagged highest-risk. The
+remedy for the extract's missing join key rests on this unconfirmed join key.
+If it does not resolve, V3 and V7 are blocked (and V6, which needed it
+regardless), and Gate 1 cannot sign off. `05_v3_seq1_vs_pri_icd9_dx_cd.py`,
+`08_v6_join_integrity.py` and `09_v7_diabetes_share.py` each fail with a named
+message saying so rather than a generic resolver error.
+
+**Comparability:** the 29% any-HCC figure came from the curated extract under
+its own filters — `summarized_srv_ind = 'Y'`, `duplicate_ind = 'N'`, dental
+excluded via `med_cost_ctg_cd`, DPPO excluded via `ntwk_srv_area_id`,
+footprint submarkets only. Raw `EMIS_CLAIM_LINE` applies none of them. The
+difference between V7's two arms stays valid because both arms share one
+population; the absolute `pri_icd9_dx_cd`-only share is not the 29% and must
+not be presented as its replacement.
+
+**Affects:** V3 agreement rate; V7 shares and the difference between its two
+arms. The 29% any-HCC figure from the old extract remains context only.
 
 **Raised by:** operator-supplied schema, 2026-08-24 session. **Date:** 2026-08-24.
 

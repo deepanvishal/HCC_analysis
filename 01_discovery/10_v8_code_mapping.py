@@ -25,12 +25,13 @@ import pandas as pd
 import config as cfg
 
 DX_SPEC = {
-    "dx_code": ([r"icd9_dx_cd", r"(icd9?_)?dx_cd",
-                 r".*icd.*dx.*cd", r".*dx.*cd"], "dx.dx_code"),
+    "icd9_dx_cd": ([r"icd9_dx_cd", r"(icd9?_)?dx_cd",
+                    r".*icd.*dx.*cd", r".*dx.*cd"], "dx.icd9_dx_cd"),
 }
 MAP_SPEC = {
-    "icd_code": ([r"icd_?(10)?_?(cd|code)", r"(dx|diag(nosis)?)_(cd|code)",
-                  r".*icd.*(cd|code).*"], "hcc_map.icd_code"),
+    "diagnosis_code": ([r"diagnosis_code", r"icd_?(10)?_?(cd|code)",
+                        r"(dx|diag(nosis)?)_(cd|code)",
+                        r".*icd.*(cd|code).*"], "hcc_map.diagnosis_code"),
     "hcc_v24": ([r"hcc_v24", r"hcc_?v?24.*", r".*v24.*"], "hcc_map.hcc_v24"),
 }
 
@@ -58,8 +59,8 @@ def main():
     mp = cfg.resolved(cfg.T_HCC_MAP, MAP_SPEC)
 
     fmt = pd.concat([
-        format_profile(cfg.T_DX, d["dx_code"], "claims"),
-        format_profile(cfg.T_HCC_MAP, mp["icd_code"], "hcc_map"),
+        format_profile(cfg.T_DX, d["icd9_dx_cd"], "claims"),
+        format_profile(cfg.T_HCC_MAP, mp["diagnosis_code"], "hcc_map"),
     ], ignore_index=True)
     cfg.write_csv(fmt, "v8_code_formats.csv")
 
@@ -97,9 +98,9 @@ def main():
       SUM(IF(m.has_hcc, c.dx_rows, 0))                  AS rows_with_hcc
     FROM claims c
     LEFT JOIN mapping m ON m.code = c.code
-    """.format(dnorm=NORM.format(col=d["dx_code"]), draw=d["dx_code"],
+    """.format(dnorm=NORM.format(col=d["icd9_dx_cd"]), draw=d["icd9_dx_cd"],
                t_dx=cfg.T_DX,
-               mnorm=NORM.format(col=mp["icd_code"]), mraw=mp["icd_code"],
+               mnorm=NORM.format(col=mp["diagnosis_code"]), mraw=mp["diagnosis_code"],
                hcc=mp["hcc_v24"], t_map=cfg.T_HCC_MAP)
 
     df = cfg.run_query(sql, label="V8 mapping")
@@ -143,9 +144,9 @@ def main():
     WHERE m.code IS NULL
     ORDER BY dx_rows DESC
     LIMIT 500
-    """.format(dnorm=NORM.format(col=d["dx_code"]), draw=d["dx_code"],
+    """.format(dnorm=NORM.format(col=d["icd9_dx_cd"]), draw=d["icd9_dx_cd"],
                t_dx=cfg.T_DX,
-               mnorm=NORM.format(col=mp["icd_code"]), mraw=mp["icd_code"],
+               mnorm=NORM.format(col=mp["diagnosis_code"]), mraw=mp["diagnosis_code"],
                t_map=cfg.T_HCC_MAP)
 
     un = cfg.run_query(unmatched_sql, label="V8 unmatched")

@@ -42,12 +42,12 @@ T_MEMBERSHIP = dev("A870800_medicare_analysis_membership")
 # dataset. 01_discovery/00_list_tables.py searches for these.
 # See 00_docs/open_questions.md Q1-Q3. Values below are starting points only.
 T_PROVIDER_DM = dev("PROVIDER_DM")
-T_TOPLINE     = dev("A870800_medicare_analysis_2025_claims")
+T_A870800_2025_CLAIMS = dev("A870800_medicare_analysis_2025_claims")
 T_CCIR        = dev("ms_dc_ref_ccir")
 
 UNVERIFIED_TABLES = {
     "PROVIDER_DM": T_PROVIDER_DM,
-    "A870800_medicare_analysis_2025_claims": T_TOPLINE,
+    "A870800_medicare_analysis_2025_claims": T_A870800_2025_CLAIMS,
     "ms_dc_ref_ccir": T_CCIR,
 }
 

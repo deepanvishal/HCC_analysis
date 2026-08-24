@@ -22,16 +22,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config as cfg
 
+CLAIM_LINE_ID_PATTERNS = [r"claim_line_id", r"clm_ln_id",
+                          r".*clm_ln.*id", r".*claim_line.*id"]
+
 CLAIM_SPEC = {
-    "claim_line_id": ([r"claim_line_id", r"clm_ln_id",
-                       r".*clm_ln.*id", r".*claim_line.*id"],
-                      "claim_line.claim_line_id"),
     "member_id": ([r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"],
                   "claim_line.member_id"),
-    "service_date": ([r"srv_start_dt",
+    "srv_start_dt": ([r"srv_start_dt",
                       r"(srv|svc|service)_(start_)?(dt|date)",
                       r".*srv.*start.*dt", r".*service.*start.*date"],
-                     "claim_line.service_date"),
+                     "claim_line.srv_start_dt"),
 }
 
 DX_ID_PATTERNS = [r"claim_line_id", r"clm_ln_id",
@@ -39,25 +39,43 @@ DX_ID_PATTERNS = [r"claim_line_id", r"clm_ln_id",
 DX_MBR_PATTERNS = [r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"]
 
 
+def emis_claim_line_id():
+    try:
+        return cfg.resolve_col(cfg.T_CLAIM_LINE, CLAIM_LINE_ID_PATTERNS,
+                               pin="claim_line.claim_line_id")
+    except cfg.SchemaError as exc:
+        print(exc)
+        raise SystemExit(
+            "V6 BLOCKED: no resolvable claim_line_id on EMIS_CLAIM_LINE.\n"
+            "DD-01 rests on this column, and it was never exercised in any "
+            "prior query. Without it V3, V6 and V7 cannot run, and Gate 1 "
+            "cannot sign off. Paste the column list above back so the correct "
+            "name can be pinned in schema_map.PINS.")
+
+
 def main():
     print("08_v6_join_integrity")
+    emis_cll = emis_claim_line_id()
+    print("  resolving columns on " + cfg.T_CLAIM_LINE)
+    print("    claim_line_id              -> {}".format(emis_cll))
     c = cfg.resolved(cfg.T_CLAIM_LINE, CLAIM_SPEC)
-    cdt = cfg.date_expr(cfg.T_CLAIM_LINE, c["service_date"])
+    cdt = cfg.date_expr(cfg.T_CLAIM_LINE, c["srv_start_dt"])
 
-    dx_cll = cfg.resolve_col(cfg.T_DX, DX_ID_PATTERNS, pin="dx.claim_line_id")
+    dx_claim_line_id = cfg.resolve_col(cfg.T_DX, DX_ID_PATTERNS,
+                                       pin="dx.claim_line_id")
     print("  resolving columns on " + cfg.T_DX)
-    print("    claim_line_id              -> {}".format(dx_cll))
-    dx_mbr = cfg.resolve_col(cfg.T_DX, DX_MBR_PATTERNS, pin="dx.member_id",
-                             required=False)
-    if dx_mbr:
-        print("    member_id                  -> {}".format(dx_mbr))
+    print("    claim_line_id              -> {}".format(dx_claim_line_id))
+    dx_member_id = cfg.resolve_col(cfg.T_DX, DX_MBR_PATTERNS,
+                                   pin="dx.member_id", required=False)
+    if dx_member_id:
+        print("    member_id                  -> {}".format(dx_member_id))
     else:
         print("    member_id                  -> ABSENT; agreement half of V6 "
               "cannot run")
 
-    if dx_mbr:
+    if dx_member_id:
         dx_member_sel = ("COUNT(DISTINCT {m}) AS distinct_members, "
-                         "ANY_VALUE({m}) AS member_id".format(m=dx_mbr))
+                         "ANY_VALUE({m}) AS member_id".format(m=dx_member_id))
         mismatch_sel = ("COUNTIF(d.member_id IS NOT NULL "
                         "AND l.member_id != d.member_id) AS member_mismatch, "
                         "COUNTIF(d.distinct_members > 1) AS multi_member_lines")
@@ -77,10 +95,10 @@ def main():
       FROM `{t_dx}`
       GROUP BY 1
     )
-    """.format(c_cll=c["claim_line_id"], c_mid=c["member_id"],
+    """.format(c_cll=emis_cll, c_mid=c["member_id"],
                t_cl=cfg.T_CLAIM_LINE, cdt=cdt,
                y1=cfg.YEAR_1, y2=cfg.YEAR_2,
-               d_cll=dx_cll, dsel=dx_member_sel, t_dx=cfg.T_DX)
+               d_cll=dx_claim_line_id, dsel=dx_member_sel, t_dx=cfg.T_DX)
 
     sql = base + """
     SELECT
@@ -108,7 +126,7 @@ def main():
     print("  unmatched                   {:,}".format(int(r["unmatched"])))
 
     mismatch = r["member_mismatch"]
-    if dx_mbr:
+    if dx_member_id:
         mismatch = int(mismatch or 0)
         multi = int(r["multi_member_lines"] or 0)
         print("  member mismatches           {:,}".format(mismatch))
@@ -116,8 +134,8 @@ def main():
         if mismatch or multi:
             sample_sql = base + """
             SELECT l.claim_line_id AS claim_line_id,
-                   l.member_id AS claim_member,
-                   d.member_id AS dx_member, d.dx_rows, d.distinct_members
+                   l.member_id AS emis_member_id,
+                   d.member_id AS dx_member_id, d.dx_rows, d.distinct_members
             FROM l JOIN d ON d.claim_line_id = l.claim_line_id
             WHERE l.member_id != d.member_id OR d.distinct_members > 1
             LIMIT 500
@@ -131,7 +149,7 @@ def main():
 
     if match_rate <= 0.95:
         result = False
-    elif dx_mbr is None:
+    elif dx_member_id is None:
         result = None
     elif mismatch or multi:
         result = False

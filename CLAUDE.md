@@ -42,6 +42,21 @@ it.
 **Do not invent results, sample data, or placeholder numbers** that could be
 mistaken for real output.
 
+**No invented vocabulary.** Use the source column names. Do not rename a
+column to something clearer, and do not introduce a term the data does not
+already use. Resolver keys, SPEC names, CSV headers and variables carry the
+source column name, prefixed by a table shorthand only for disambiguation. If
+a new name is genuinely unavoidable — a derived aggregate, a normalised join
+key — say so and why.
+
+**Heavy work runs in BigQuery, not in Python.** Aggregate, filter, join and
+summarise in SQL and return only small result sets. The machine running this
+has little memory. Never pull claim-line or member-level data into a DataFrame
+to compute something SQL could have computed. pandas is for assembling small
+result frames and writing CSVs, nothing else. This holds hardest in extract
+and analysis, where the temptation to pull member-level rows will be
+strongest.
+
 ---
 
 ## Where the code runs
@@ -213,7 +228,8 @@ schema_map.py        seeded default column names + operator pins
 
 Run order in `01_discovery`: `00_list_tables`, `01_columns`, `02_row_counts`,
 `11_value_profiles`, then `03` through `10` for V1 to V8, then
-`99_gate1_summary`.
+`99_gate1_summary`. The standalone runbook for the machine with credentials is
+`00_docs/run_order.md`.
 
 ---
 

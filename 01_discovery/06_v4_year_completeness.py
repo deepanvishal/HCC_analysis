@@ -27,10 +27,10 @@ import pandas as pd
 import config as cfg
 
 SPEC = {
-    "service_date": ([r"srv_start_dt",
+    "srv_start_dt": ([r"srv_start_dt",
                       r"(srv|svc|service)_(start_)?(dt|date)",
                       r".*srv.*start.*dt", r".*service.*start.*date"],
-                     "claim_line.service_date"),
+                     "claim_line.srv_start_dt"),
 }
 
 MEMBER_PATTERNS = [r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"]
@@ -39,14 +39,15 @@ MEMBER_PATTERNS = [r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"]
 def main():
     print("06_v4_year_completeness")
     c = cfg.resolved(cfg.T_CLAIM_LINE, SPEC)
-    dt = cfg.date_expr(cfg.T_CLAIM_LINE, c["service_date"])
+    dt = cfg.date_expr(cfg.T_CLAIM_LINE, c["srv_start_dt"])
     print("    date expression            -> {}".format(dt))
 
-    mbr = cfg.resolve_col(cfg.T_CLAIM_LINE, MEMBER_PATTERNS,
-                          pin="claim_line.member_id", required=False)
-    mbr_sel = "COUNT(DISTINCT {}) AS members".format(mbr) if mbr else "NULL AS members"
-    if mbr:
-        print("    member column              -> {}".format(mbr))
+    member_id = cfg.resolve_col(cfg.T_CLAIM_LINE, MEMBER_PATTERNS,
+                                pin="claim_line.member_id", required=False)
+    member_sel = ("COUNT(DISTINCT {}) AS members".format(member_id)
+                  if member_id else "NULL AS members")
+    if member_id:
+        print("    member column              -> {}".format(member_id))
     else:
         print("    member column              -> not resolved; counts omitted")
 
@@ -54,12 +55,12 @@ def main():
     SELECT EXTRACT(YEAR  FROM {dt}) AS yr,
            EXTRACT(MONTH FROM {dt}) AS mo,
            COUNT(*) AS claim_lines,
-           {mbr_sel}
+           {member_sel}
     FROM `{t}`
     WHERE {dt} BETWEEN DATE({y0}, 1, 1) AND DATE({y1}, 12, 31)
     GROUP BY 1, 2
     ORDER BY 1, 2
-    """.format(dt=dt, mbr_sel=mbr_sel, t=cfg.T_CLAIM_LINE,
+    """.format(dt=dt, member_sel=member_sel, t=cfg.T_CLAIM_LINE,
                y0=cfg.SCAN_YEAR_MIN, y1=cfg.SCAN_YEAR_MAX)
 
     df = cfg.run_query(sql, label="V4")

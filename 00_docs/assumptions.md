@@ -24,7 +24,7 @@ is the working copy the scripts and reviews refer to.
 
 | Assumption | Tested by | Script |
 |---|---|---|
-| A1 | V1, V2, V3 | `03_v1_dx_positions.py`, `04_v2_dx_per_claim_line.py`, `05_v3_position1_vs_topline.py` |
+| A1 | V1, V2, V3 | `03_v1_dx_positions.py`, `04_v2_dx_per_claim_line.py`, `05_v3_seq1_vs_pri_icd9_dx_cd.py` |
 | A6 | V5 | `07_v5_member_id_stability.py` |
 | A7 | V4 | `06_v4_year_completeness.py` |
 | A10 | V6 | `08_v6_join_integrity.py` |
