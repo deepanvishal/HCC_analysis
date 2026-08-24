@@ -24,10 +24,10 @@ is the working copy the scripts and reviews refer to.
 
 | Assumption | Tested by | Script |
 |---|---|---|
-| A1 | V1, V2, V3 | `03_v1_dx_positions.py`, `04_v2_dx_per_claim_line.py`, `05_v3_seq1_vs_pri_icd9_dx_cd.py` |
-| A6 | V5 | `07_v5_member_id_stability.py` |
-| A7 | V4 | `06_v4_year_completeness.py` |
-| A10 | V6 | `08_v6_join_integrity.py` |
+| A1 | V1, V2, V3 | `03_v1_sequence_values.sql`, `04_v2_dx_per_claim_line.sql`, `05_v3_seq1_vs_pri_icd9_dx_cd.sql` |
+| A6 | V5 | `07_v5_member_id_stability.sql` |
+| A7 | V4 | `06_v4_year_completeness.sql` |
+| A10 | V6 | `08_v6_join_integrity.sql` |
 
 A2, A3, A4 are confirmed but not independently tested here. A5, A8, A9 are not
 testable by any check in the validation plan.

@@ -28,7 +28,7 @@ be on the page already.
 
 ## What belongs here
 
-- Any column pinned in `schema_map.PINS`, with the reason the resolver could not choose
+- Any column name corrected by hand after a BigQuery error, with the wrong and the right name
 - A table resolved to a location the methodology did not specify
 - Mapping raw business line codes to Medicare and commercial
 - Which place-of-service codes count as office, hospital outpatient, inpatient
@@ -71,9 +71,10 @@ the extra positions.
 no seeded default, never exercised in any query, flagged highest-risk. The
 remedy for the extract's missing join key rests on this unconfirmed join key.
 If it does not resolve, V3 and V7 are blocked (and V6, which needed it
-regardless), and Gate 1 cannot sign off. `05_v3_seq1_vs_pri_icd9_dx_cd.py`,
-`08_v6_join_integrity.py` and `09_v7_diabetes_share.py` each fail with a named
-message saying so rather than a generic resolver error.
+regardless), and Gate 1 cannot sign off. `05_v3_seq1_vs_pri_icd9_dx_cd.sql`,
+`08_v6_join_integrity.sql` and `09_v7_diabetes_share.sql` each carry this
+dependency in their header; the failure surfaces as BigQuery's
+"Unrecognized name: claim_line_id" error (DD-03).
 
 **Comparability:** the 29% any-HCC figure came from the curated extract under
 its own filters — `summarized_srv_ind = 'Y'`, `duplicate_ind = 'N'`, dental
@@ -103,13 +104,46 @@ match (preferred, and still tried first, but the confirmed columns are
 `diagnosis_code`, `HCC_v24`, `HCC_v28` only).
 
 **Rationale:** E08-E13 is the ICD-10 diabetes mellitus chapter, verifiable
-against the published code set. The derivation is printed and written to
-`v7_diabetes_hcc_codes.csv` with the evidence per HCC, so the derived set is
-confirmed rather than trusted (Q10). E12 is unused in ICD-10-CM and is included
+against the published code set. The derivation is returned by 09 Query A with
+the evidence per HCC, so the derived set is confirmed rather than trusted
+(Q10). E12 is unused in ICD-10-CM and is included
 only so a WHO-coded row would not slip past.
 
 **Affects:** every diabetes figure in V7 and downstream.
 
 **Raised by:** operator-supplied schema, 2026-08-24 session. **Date:** 2026-08-24.
+
+**Status:** Active
+
+## DD-03  Gate 1 as plain SQL, drop Python
+
+**Decision:** Gate 1 is eleven flat SQL files at the repo root, run by hand in
+the BigQuery console. All Python is deleted: config, the resolver,
+schema_map, and the fourteen discovery scripts.
+
+**Alternatives:** keep the Python and set up the office machine (gcloud, ADC,
+an interpreter with the SDK) — rejected, the machine will not be set up; a
+runner script or wrapper — rejected, flat files only.
+
+**Rationale:** the office machine has no gcloud, no ADC, and a PATH default
+interpreter without the SDK. Every Gate 1 check is a GROUP BY, a JOIN or a
+COUNT — no calculation needs Python. BigQuery's own error message is a better
+column resolver than anything we would write: "Unrecognized name: x" says
+exactly what is wrong, and names are fixed by hand as they surface.
+
+**Consequences:** no CSV outputs or verdict files; results are saved from the
+console and recorded in run_log.md. Column names are hardcoded source names;
+the seeded-resolver layer is gone. Table locations are hardcoded
+fully-qualified, verified against the prior repo's SQL. DD-01 and DD-02 carry
+forward unchanged; their implementations now live in 05, 08 and 09 (DD-01)
+and 09 Query A (DD-02). The A870800 extract is dropped from Gate 1 entirely:
+after DD-01 its only remaining use was one specialty value profile, which now
+reads PROVIDER_DM instead. Its location remains open as Q2 and 01_columns.sql
+still searches for it.
+
+**Affects:** how Gate 1 runs, not what it checks. Every criterion is carried
+across unchanged from validation.md.
+
+**Raised by:** operator, 2026-08-24 session. **Date:** 2026-08-24.
 
 **Status:** Active

@@ -6,13 +6,12 @@ Nothing in this file has been checked against the live schema. No table grain,
 column name, type or join key below is confirmed. **Do not rely on anything on
 this page, and do not write extract code against it.**
 
-This file is filled from the output of the discovery scripts, run on the
-machine that holds credentials:
+This file is filled from the results of the discovery SQL, run by hand in the
+BigQuery console (see 00_docs/run_order.md):
 
 ```
-python 01_discovery/00_list_tables.py     -> 00_tables_found.csv, 00_tables_expected.csv
-python 01_discovery/01_columns.py         -> 01_columns.csv, 01_brief_column_check.csv
-python 01_discovery/02_row_counts.py      -> 02_row_counts.csv, 02_partitions.csv
+01_columns.sql      actual columns and types, all tables
+02_row_counts.sql   row counts and sizes
 ```
 
 Rewrite the sections below from those CSVs, delete this banner, and record the
@@ -22,9 +21,9 @@ date and the person who did it in `run_log.md`.
 
 ## Operator-observed columns (2026-08-24, pre-discovery)
 
-Seeded into `schema_map.DEFAULTS`. These are operator attestations, not
-discovery output; the banner above still applies until `01_columns.py`
-confirms them. Provenance tiers:
+These are operator attestations, not discovery output, hardcoded into the
+Gate 1 SQL; the banner above still applies until `01_columns.sql` confirms
+them. Provenance tiers:
 
 **Observed directly in a BigQuery SELECT * result grid** — probably complete,
 not certainly (the grid had a horizontal scrollbar):
@@ -54,8 +53,8 @@ not certainly (the grid had a horizontal scrollbar):
 - `PROVIDER_DM`: `provider_id`, `epdb_dw_prvdr_id`, `specialty_ctg_cd`,
   `zip_cd`, `county_nm`, `tin_owner_nm`
 
-**Named in docs, never exercised in any query — highest-risk names, no seeded
-default, resolver reports what it finds:**
+**Named in docs, never exercised in any query — highest-risk names; a wrong
+one surfaces as BigQuery's "Unrecognized name" error:**
 
 - `EMIS_CLAIM_LINE.claim_line_id` — the join key to the diagnosis table
 - `EMIS_CLAIM_LINE.plc_srv_cd` — expected to carry IP / OP / F
@@ -66,7 +65,7 @@ normalised with `UPPER(REPLACE(TRIM(x), '.', ''))` before any comparison.
 
 No value list has been seen for `plc_srv_cd`, `plc_srv_ctg_cd`,
 `business_ln_cd`, `specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`, or
-`medical_ind`. `11_value_profiles.py` profiles each; setting logic and the
+`medical_ind`. `11_value_profiles.sql` profiles each; setting logic and the
 Medicare/commercial split cannot be written until those come back.
 
 ---
@@ -76,7 +75,7 @@ Medicare/commercial split cannot be written until those come back.
 PROVIDER_DM and the CCIR table locations come from fully-qualified FROM/JOIN
 clauses in the prior medicare_analysis repo's SQL, pending live confirmation
 (Q1, Q3 - answered). The A870800 extract's location remains **unverified**
-(Q2). `00_list_tables.py` sweeps both datasets for all three.
+(Q2). `01_columns.sql` searches both datasets for the extract's name.
 
 | Purpose | Table | Location | Grain | Row count |
 |---|---|---|---|---|
@@ -130,7 +129,7 @@ Methodology Appendix A names the field `HCC_v24`. Unverified.
 
 **Grain:** not verified. Member-month, member-span and member-year are all
 possible and the difference changes every coverage calculation.
-`07_v5_member_id_stability.py` prints a grain probe before anything else.
+`07_v5_member_id_stability.sql` Query A is a grain probe; read it first.
 
 ### PROVIDER_DM
 
@@ -161,7 +160,7 @@ possible and the difference changes every coverage calculation.
 ## Join keys
 
 Every join below is proposed, not verified. V6
-(`08_v6_join_integrity.py`) tests the first one and is a Gate 1 sign-off check.
+(`08_v6_join_integrity.sql`) tests the first one and is a Gate 1 sign-off check.
 
 | From | To | On | Verified |
 |---|---|---|---|
@@ -176,9 +175,8 @@ Every join below is proposed, not verified. V6
 
 None is discovery-confirmed yet. Provenance below is operator attestation
 (grid = seen in a result grid; sql = used in working SQL; never exercised =
-named in docs only). `01_columns.py` writes `01_brief_column_check.csv`
-marking each CONFIRMED or ABSENT against the live schema; transfer that result
-here.
+named in docs only). Check each against the `01_columns.sql` result and
+record CONFIRMED or ABSENT here.
 
 | Brief name | Provenance | Expected on | Live schema |
 |---|---|---|---|

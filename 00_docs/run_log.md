@@ -10,13 +10,13 @@ entry; do not edit an old one.
 ## Format
 
 ```
-## YYYY-MM-DD  script_name.py
+## YYYY-MM-DD  file_name.sql (query letter if the file has several)
 
-**Run by:** name. **Machine:** where. **Duration:** approx. **Bytes billed:** from the dry run.
+**Run by:** name. **Where:** BigQuery console. **Bytes billed:** from the console job details.
 
 **Result:** PASS | FAIL | REVIEW | n/a for discovery scripts.
 
-**Output:** files written, under 01_discovery/output/.
+**Output:** result CSVs saved from the console, named after the file and query.
 
 **What it showed:** two or three sentences. The number that matters, not a
 restatement of the criterion.
@@ -28,8 +28,8 @@ recorded, a question closed, nothing.
 ## Gate sign-off
 
 Record a gate sign-off here as well as in the table at the end of
-`validation.md`. Gate 1 requires V1, V3, V6 and V7 to pass.
-`99_gate1_summary.py` reports the status from the recorded verdicts.
+`validation.md`. Gate 1 requires V1, V3, V6 and V7 to pass, read off each
+file's saved result against the criteria in its header.
 
 ---
 

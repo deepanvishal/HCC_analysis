@@ -17,9 +17,9 @@ Status: **Open** | **Answered** (with pointer) | **Will not resolve**
 Named in the task brief and methodology Appendix A with no project or dataset.
 **Answer (2026-08-24):** `edp-prod-hcbstorage.edp_hcb_core_cnsv.PROVIDER_DM`.
 Taken from fully-qualified FROM/JOIN clauses in the prior medicare_analysis
-repo's SQL, not inferred. Recorded in `config.T_PROVIDER_DM` and
-`data_model.md`. `00_list_tables.py` still sweeps both datasets as the safety
-net; live confirmation lands with the first discovery run.
+repo's SQL, not inferred. Recorded in the SQL files and `data_model.md`.
+`01_columns.sql` lists the table's columns at this location; an empty result
+there means it is not where the prior repo's SQL says.
 **Status:** Answered
 
 ### Q2. Where is `A870800_medicare_analysis_2025_claims`?
@@ -31,7 +31,7 @@ from `EMIS_CLAIM_LINE.pri_icd9_dx_cd`, since the extract carries no
 as reference: it is the source of the 29% any-HCC figure, and its name
 suggests 2025 coverage — whether it covers 2023-2024 at all is part of this
 question.
-**Resolved by:** `00_list_tables.py`.
+**Resolved by:** `01_columns.sql`, which searches both datasets for the name.
 **Status:** Open
 
 ### Q3. Where is `ms_dc_ref_ccir`?
@@ -41,10 +41,10 @@ Appendix A without a location.
 `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_supply_demand_ms_dc_ref_ccir`
 — the methodology's short name is a suffix of the real table name. Taken from
 fully-qualified FROM/JOIN clauses in the prior medicare_analysis repo's SQL,
-not inferred. Recorded in `config.T_CCIR` and `data_model.md`.
-`00_list_tables.py` still sweeps both datasets as the safety net.
+not inferred. Recorded in the SQL files and `data_model.md`.
+`01_columns.sql` lists the table's columns at this location.
 The "any long-term condition" half of V7 remains unbuilt —
-`09_v7_diabetes_share.py` measures diabetes only and says so in its output —
+`09_v7_diabetes_share.sql` measures diabetes only and says so in its output —
 but is no longer blocked on location.
 **Status:** Answered
 
@@ -58,12 +58,13 @@ but is no longer blocked on location.
 `epdb_dw_prvdr_id`, `specialty_ctg_cd`, `business_ln_cd`, `srv_start_dt`.
 
 Operator attestation now covers most of them (see the provenance table in
-`data_model.md` and `schema_map.DEFAULTS`), with three exceptions that remain
+`data_model.md`; the names are hardcoded in the Gate 1 SQL), with three
+exceptions that remain
 named-but-never-exercised: `claim_line_id` on EMIS_CLAIM_LINE, `plc_srv_cd`,
 and `plc_srv_ctg_cd`. Discovery confirmation is still pending for all
 thirteen.
-**Resolved by:** `01_columns.py`, which writes `01_brief_column_check.csv`
-marking each CONFIRMED or ABSENT.
+**Resolved by:** `01_columns.sql` for the tables each name is expected on; a
+wrong name in any check surfaces as BigQuery's "Unrecognized name" error.
 **Status:** Open
 
 ### Q5. Does `CLM_LN_X_ICD9_DX` carry a member identifier?
@@ -71,7 +72,8 @@ V6 must confirm the member identifier agrees on both sides of the claim-line
 join. Without a member column on the illness table that half of the check
 cannot run, and V6 reports UNVERIFIABLE rather than passing.
 **Update 2026-08-24:** `member_id` was observed on the table in a result grid
-and is seeded as a default. Likely closable once `01_columns.py` confirms it.
+and is hardcoded in `08_v6_join_integrity.sql`. Likely closable once
+`01_columns.sql` confirms it.
 **Blocks:** Gate 1 sign-off, which requires V6.
 **If absent:** another way to verify the join is needed before sign-off.
 **Status:** Open
@@ -87,16 +89,15 @@ operator-confirmed membership columns do not include one.
 Methodology step 14 compares doctors within specialty.
 **Update 2026-08-24:** operator attests `specialty_ctg_cd` on `PROVIDER_DM`
 and on the A870800 extract. PROVIDER_DM's location is now answered (Q1); what
-remains is the value set (`11_value_profiles.py`).
+remains is the value set (`11_value_profiles.sql`).
 **Blocks:** peer comparison and the shrinkage in step 13.
 **Status:** Open
 
 ### Q8. Where is member state?
-Florida scope, methodology step 5. `09_v7_diabetes_share.py` applies a state
-filter only if it resolves a state column, and prints that the figures are
-all-states when it cannot.
+Florida scope, methodology step 5. `09_v7_diabetes_share.sql` filters on
+`UPPER(TRIM(state_postal_cd)) = 'FL'` inline.
 **Update 2026-08-24:** operator attests `state_postal_cd` on the membership
-extract; seeded as the default. Values unverified — `11_value_profiles.py`
+extract; hardcoded in the SQL. Values unverified — `11_value_profiles.sql`
 profiles them, and the FL filter is only trustworthy once 'FL' is seen there.
 **Blocks:** scoping every figure to Florida.
 **Status:** Open
@@ -107,7 +108,7 @@ profiles them, and the FL filter is only trustworthy once 'FL' is seen there.
 
 ### Q9. Which business line codes are Medicare and which are commercial?
 Methodology step 5 requires the two books never be combined.
-`09_v7_diabetes_share.py` reports raw business line values and does not assign
+`09_v7_diabetes_share.sql` reports raw business line values and does not assign
 them, because guessing here would silently blend the books.
 **Blocks:** V7's pass criterion, which has separate bands per book, and every
 later figure.
@@ -115,7 +116,7 @@ later figure.
 **Status:** Open
 
 ### Q10. Which HCC values are diabetes?
-`09_v7_diabetes_share.py` derives the set from the mapping table: by
+`09_v7_diabetes_share.sql` derives the set from the mapping table: by
 description match where a description column exists, otherwise by ICD-10
 prefix E08-E13 (DD-02 — the confirmed mapping columns carry no description).
 It prints the derived HCCs with evidence. The derived set needs confirming
@@ -126,9 +127,9 @@ against the CMS-HCC V24 definition.
 Methodology A3 records that setting can be told from the place-of-service code
 and that IP / OP / F are the values. `plc_srv_cd` and `plc_srv_ctg_cd` are
 named in prior docs but never exercised in any query — with
-`EMIS_CLAIM_LINE.claim_line_id`, the highest-risk names in the build. No
-seeded default; the resolver reports what it finds, and
-`11_value_profiles.py` profiles the values.
+`EMIS_CLAIM_LINE.claim_line_id`, the highest-risk names in the build. A
+wrong name surfaces as BigQuery's "Unrecognized name" error, and
+`11_value_profiles.sql` profiles the values.
 **Blocks:** the office-only score, which is the doctor-facing measure.
 **Status:** Open
 
@@ -162,7 +163,7 @@ Absence of the pattern is not proof of absence.
 
 ### Q15. What is the minimum panel size?
 Methodology Appendix A gives 30 as a starting point, to be checked against the
-observed distribution. `config.MIN_PANEL` holds the provisional value.
+observed distribution. 30 is the provisional value.
 **Blocks:** any ranking. No doctor is scored without it.
 **Status:** Open
 
@@ -176,8 +177,9 @@ Methodology section 10 proposes amputation status. Not decided.
 **Status:** Open
 
 ### Q18. Is `anbc-dev-prv-nc-ds` the right billing project?
-Carried over from the prior medicare_analysis repo and set in
-`config.CLIENT_PROJECT`. Not confirmed for this repo, and this repo reads from
+Carried over from the prior medicare_analysis repo; it is the project to
+select in the BigQuery console (run_order.md). Not confirmed for this repo,
+and this repo reads from
 `edp-prod-hcbstorage`, a third project.
 **Status:** Open
 
@@ -192,7 +194,7 @@ before the framing is used externally.
 Operator-confirmed on the membership extract; values unseen. If it flags
 medical (vs dental/pharmacy-only) coverage, the denominators in V5 and V7
 should probably require it — a member without medical coverage cannot have
-claims. No script filters on it yet; `11_value_profiles.py` profiles the
+claims. No query filters on it yet; `11_value_profiles.sql` profiles the
 values.
 **Blocks:** nothing yet; potentially every denominator once answered.
 **Becomes:** a numbered decision in `data_decisions.md`.
