@@ -95,10 +95,11 @@ remains is the value set (`11_value_profiles.sql`).
 
 ### Q8. Where is member state?
 Florida scope, methodology step 5. `09_v7_diabetes_share.sql` filters on
-`UPPER(TRIM(state_postal_cd)) = 'FL'` inline.
-**Update 2026-08-24:** operator attests `state_postal_cd` on the membership
-extract; hardcoded in the SQL. Values unverified — `11_value_profiles.sql`
-profiles them, and the FL filter is only trustworthy once 'FL' is seen there.
+`UPPER(TRIM(mbr_state)) = 'FL'` inline.
+**Update 2026-08-24:** the column is `mbr_state`, from the build SQL (DD-05);
+`state_postal_cd` belongs to ZIP_X_ST_X_COUNTY inside the build's CTE and is
+never emitted. Values unverified — `11_value_profiles.sql` profiles them,
+and the FL filter is only trustworthy once 'FL' is seen there.
 **Blocks:** scoping every figure to Florida.
 **Status:** Open
 
@@ -191,11 +192,8 @@ before the framing is used externally.
 **Status:** Open
 
 ### Q20. What does `medical_ind` mean, and should membership denominators filter on it?
-Operator-confirmed on the membership extract; values unseen. If it flags
-medical (vs dental/pharmacy-only) coverage, the denominators in V5 and V7
-should probably require it — a member without medical coverage cannot have
-claims. No query filters on it yet; `11_value_profiles.sql` profiles the
-values.
-**Blocks:** nothing yet; potentially every denominator once answered.
-**Becomes:** a numbered decision in `data_decisions.md`.
-**Status:** Open
+**Answer (2026-08-24):** `medical_ind` is not a column on the curated table.
+It is a filter in the build SQL (`where m.medical_ind = 'Y'`), so every row
+already satisfies it - the denominators are medical coverage by construction
+and there is nothing to profile or filter (DD-05).
+**Status:** Answered

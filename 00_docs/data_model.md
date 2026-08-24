@@ -47,10 +47,13 @@ not certainly (the grid had a horizontal scrollbar):
 - `HCC_ICD_Mapping_2025`: `diagnosis_code`, `HCC_v24`, `HCC_v28` — no
   description column (DD-02)
 - `ms_dc_ref_ccir`: `icd_code`, `icd_description`, `chronic_indicator`
-- membership extract: `member_id`, `eff_yr`, `eff_mo` (both STRING, cast to
-  INT64 before comparing; `eff_dt` exists only on the raw EMIS_MEMBERSHIP,
-  DD-04), `medical_ind`, `business_ln_cd`, `age_nbr`, `gender_cd`,
-  `county_nm`, `zip_cd`, `state_postal_cd` — no death indicator (Q6)
+- membership extract, exact list from the build SQL (test_sql.sql lines
+  123-140, DD-05): `member_id`, `eff_yr`, `eff_mo` (both STRING, cast to
+  INT64 before comparing; DD-04), `age_nbr`, `gender_cd`, `mbr_county_cd`,
+  `mbr_state`, `mbr_submarket` — nothing else. No death indicator (Q6). The
+  build applies `medical_ind = 'Y'` and `business_ln_cd IN ('CP','ME')` as
+  filters without keeping either column, so every row is medical coverage and
+  the two books are present, mixed, with no way to tell them apart (DD-06)
 - `PROVIDER_DM`: `provider_id`, `epdb_dw_prvdr_id`, `specialty_ctg_cd`,
   `zip_cd`, `county_nm`, `tin_owner_nm`
 
@@ -65,9 +68,9 @@ Codes carry dots on the claims side and not in the HCC mapping. Both sides are
 normalised with `UPPER(REPLACE(TRIM(x), '.', ''))` before any comparison.
 
 No value list has been seen for `plc_srv_cd`, `plc_srv_ctg_cd`,
-`business_ln_cd`, `specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`, or
-`medical_ind`. `11_value_profiles.sql` profiles each; setting logic and the
-Medicare/commercial split cannot be written until those come back.
+`specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`, or `mbr_state`.
+`11_value_profiles.sql` profiles each; setting logic cannot be written until
+those come back.
 
 ---
 
@@ -192,7 +195,7 @@ record CONFIRMED or ABSENT here.
 | `srv_prvdr_id` | sql | EMIS_CLAIM_LINE | not checked |
 | `epdb_dw_prvdr_id` | sql | topline, PROVIDER_DM | not checked |
 | `specialty_ctg_cd` | sql | topline, PROVIDER_DM | not checked |
-| `business_ln_cd` | sql | EMIS, topline, membership | not checked |
+| `business_ln_cd` | sql | EMIS, topline (not membership - build filter, DD-05) | not checked |
 | `srv_start_dt` | sql | EMIS, topline | not checked |
 
 ---
@@ -218,6 +221,7 @@ From methodology.md. The purpose is settled; the column that serves it is not.
 
 **Not yet located in any table:** death indicator (Q6), place of service (the
 two `plc_srv` columns are named but never exercised, Q11). Provider specialty
-and state now have operator-attested homes (`PROVIDER_DM.specialty_ctg_cd`,
-membership `state_postal_cd`) pending discovery confirmation. See
+and state now have attested homes (`PROVIDER_DM.specialty_ctg_cd`,
+membership `mbr_state` per the build SQL, DD-05) pending discovery
+confirmation. See
 `open_questions.md`.

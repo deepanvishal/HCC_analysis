@@ -172,3 +172,31 @@ cross-check) and V7 (the 2023 membership denominators in Queries B, C, D).
 **Raised by:** operator, against the prior repo's build SQL. **Date:** 2026-08-24.
 
 **Status:** Active
+
+## DD-05  Membership column names come from the build SQL, not assertion
+
+**Decision:** the curated A870800_medicare_analysis_membership is treated as
+having exactly the columns its build SQL emits (test_sql.sql lines 123-140):
+`member_id`, `eff_yr`, `eff_mo`, `age_nbr`, `gender_cd`, `mbr_county_cd`,
+`mbr_state`, `mbr_submarket`. Every membership reference in Gate 1 is
+corrected to this list.
+
+**Alternatives:** none; the build's SELECT list is the table.
+
+**Rationale:** four asserted membership columns were wrong. `eff_dt` (already
+corrected, DD-04). `state_postal_cd` - a column on ZIP_X_ST_X_COUNTY used
+inside a build CTE, never emitted; the emitted column is `mbr_state`.
+`medical_ind` - not a column; a build filter (`where m.medical_ind = 'Y'`),
+so every row already satisfies it. `business_ln_cd` - not a column; also a
+build filter (`business_ln_cd IN ('CP','ME')`), so both books are present,
+mixed, with no way to tell them apart. All membership names now come from the
+build SQL rather than assertion.
+
+**Affects:** V7's Florida filter (now `mbr_state`); the value profiles
+(medical_ind dropped - nothing to profile; state profile now `mbr_state`);
+Q8 and Q20. The business_ln_cd consequence is bigger than a rename and is
+decided in DD-06.
+
+**Raised by:** operator, against test_sql.sql lines 123-140. **Date:** 2026-08-24.
+
+**Status:** Active
