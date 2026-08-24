@@ -1,11 +1,10 @@
 """
 WHAT   V7. Share of members recorded with diabetes in year one, computed two
-       ways: from the top-line extract only, and from every diagnosis position.
-       Both a check and the headline finding of this repo.
+       ways: from the top-line diagnosis only, and from every diagnosis
+       position. Both a check and the headline finding of this repo.
 GRAIN  diabetes HCC list is one row per HCC; the result is one row per
        (business line, method)
-INPUTS config.T_MEMBERSHIP, config.T_CLAIM_LINE, config.T_DX,
-       config.T_TOPLINE, config.T_HCC_MAP
+INPUTS config.T_MEMBERSHIP, config.T_CLAIM_LINE, config.T_DX, config.T_HCC_MAP
 OUTPUT 01_discovery/output/v7_diabetes_hcc_codes.csv
        01_discovery/output/v7_business_lines.csv
        01_discovery/output/v7_recovery_rate.csv
@@ -15,9 +14,18 @@ Fail (too low)     something is still being filtered out
 Fail (no change)   the extra positions carry nothing. Report either way.
 Gate 1 sign-off requires V7.
 
-The diabetes HCC set is read from the mapping table by description match, not
-hardcoded. Business line values are reported raw: mapping them to Medicare and
-commercial is a numbered data decision, not an assumption this script makes.
+The top-line arm reads EMIS_CLAIM_LINE.pri_icd9_dx_cd rather than the A870800
+extract: the extract has no claim_line_id, no confirmed location, and its name
+suggests 2025 coverage. Same top-line fact, same population as the
+all-positions arm. See DD-01.
+
+The diabetes HCC set is derived from the mapping table: by description match
+where a description column exists, otherwise from the ICD-10 diabetes chapter
+prefix E08-E13. The derived set is printed for confirmation either way. See
+DD-02 and Q10.
+
+Business line values are reported raw: mapping them to Medicare and commercial
+is a numbered data decision, not an assumption this script makes.
 """
 
 import os
@@ -28,8 +36,9 @@ import pandas as pd
 import config as cfg
 
 MAP_SPEC = {
-    "icd_code": ([r"icd_?(10)?_?(cd|code)", r"(dx|diag(nosis)?)_(cd|code)",
-                  r".*icd.*(cd|code).*"], "hcc_map.icd_code"),
+    "icd_code": ([r"diagnosis_code", r"icd_?(10)?_?(cd|code)",
+                  r"(dx|diag(nosis)?)_(cd|code)", r".*icd.*(cd|code).*"],
+                 "hcc_map.icd_code"),
     "hcc_v24": ([r"hcc_v24", r"hcc_?v?24.*", r".*v24.*"], "hcc_map.hcc_v24"),
 }
 MAP_DESC_PATTERNS = [r"(hcc_)?(desc|description|label|name|long_name)",
@@ -38,7 +47,8 @@ MAP_DESC_PATTERNS = [r"(hcc_)?(desc|description|label|name|long_name)",
 MEMBERSHIP_SPEC = {
     "member_id": ([r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"],
                   "membership.member_id"),
-    "period": ([r"(cvrg|covg|coverage|elig|eligibility|mbrshp|membership)_"
+    "period": ([r"eff_dt",
+                r"(cvrg|covg|coverage|elig|eligibility|mbrshp|membership)_"
                 r"(month|mth|mo|dt|date|yr_mo)",
                 r"(eff|start|begin)_(dt|date)",
                 r".*(month|yr_mo).*", r".*eff.*dt.*"],
@@ -46,7 +56,8 @@ MEMBERSHIP_SPEC = {
 }
 BOOK_PATTERNS = [r"business_ln_cd", r"(business|bus)_(line|ln)_(cd|code)",
                  r".*business.*ln.*", r".*lob.*", r".*product.*(cd|type)"]
-STATE_PATTERNS = [r"(mbr_)?(state|st)_(cd|code|abbr)", r"state", r".*state.*cd"]
+STATE_PATTERNS = [r"state_postal_cd", r"(mbr_)?(state|st)_(cd|code|abbr)",
+                  r"state", r".*state.*cd"]
 
 CLAIM_SPEC = {
     "claim_line_id": ([r"claim_line_id", r"clm_ln_id",
@@ -57,6 +68,8 @@ CLAIM_SPEC = {
     "service_date": ([r"srv_start_dt", r"(srv|svc|service)_(start_)?(dt|date)",
                       r".*srv.*start.*dt", r".*service.*start.*date"],
                      "claim_line.service_date"),
+    "topline_dx": ([r"pri_icd9_dx_cd", r"(pri|prmry|primary)_(icd9?_)?dx_cd",
+                    r".*pri.*dx.*cd"], "claim_line.topline_dx"),
 }
 
 DX_SPEC = {
@@ -66,30 +79,50 @@ DX_SPEC = {
                  r".*icd.*dx.*cd", r".*dx.*cd"], "dx.dx_code"),
 }
 
-TOPLINE_SPEC = {
-    "member_id": ([r"member_id", r"mbr_id", r".*mbr.*id", r".*member.*id"],
-                  "topline.member_id"),
-    "dx_code": ([r"icd9_dx_cd", r"(prmry|primary)_(icd9_)?dx_cd",
-                 r"(icd9?_)?dx_cd", r".*dx.*cd"], "topline.dx_code"),
-    "service_date": ([r"srv_start_dt", r"(srv|svc|service)_(start_)?(dt|date)",
-                      r".*srv.*start.*dt", r".*service.*start.*date"],
-                     "topline.service_date"),
-}
-
 NORM = "UPPER(TRIM(REPLACE({col}, '.', '')))"
+
+# ICD-10 diabetes mellitus chapter. Used only when the mapping table has no
+# description column. E12 is unused in ICD-10-CM; included so a WHO-coded row
+# would not slip past. See DD-02.
+DIABETES_ICD_PREFIX = r"^E(08|09|10|11|12|13)"
 
 
 def diabetes_hccs(mp, desc_col):
-    """Distinct HCC_v24 values whose description mentions diabetes."""
-    sql = """
-    SELECT DISTINCT CAST({hcc} AS STRING) AS hcc_v24, {desc} AS description,
-           COUNT(*) OVER (PARTITION BY CAST({hcc} AS STRING)) AS icd_codes
-    FROM `{t}`
-    WHERE LOWER({desc}) LIKE '%diabet%'
-      AND {hcc} IS NOT NULL AND CAST({hcc} AS STRING) NOT IN ('', '0')
-    ORDER BY hcc_v24
-    """.format(hcc=mp["hcc_v24"], desc=desc_col, t=cfg.T_HCC_MAP)
-    return cfg.run_query(sql, label="V7 diabetes HCCs")
+    """Distinct HCC_v24 values for diabetes, with the derivation printed.
+
+    By description match when a description column exists; by ICD-10 prefix
+    E08-E13 otherwise."""
+    if desc_col:
+        method = "description match on {}".format(desc_col)
+        sql = """
+        SELECT CAST({hcc} AS STRING) AS hcc_v24,
+               ANY_VALUE({desc}) AS evidence,
+               COUNT(DISTINCT {icd}) AS icd_codes
+        FROM `{t}`
+        WHERE LOWER({desc}) LIKE '%diabet%'
+          AND {hcc} IS NOT NULL AND CAST({hcc} AS STRING) NOT IN ('', '0')
+        GROUP BY 1
+        ORDER BY 1
+        """.format(hcc=mp["hcc_v24"], desc=desc_col, icd=mp["icd_code"],
+                   t=cfg.T_HCC_MAP)
+    else:
+        method = "ICD-10 prefix E08-E13 (no description column on the mapping)"
+        sql = """
+        SELECT CAST({hcc} AS STRING) AS hcc_v24,
+               STRING_AGG({norm}, ', ' ORDER BY {norm} LIMIT 5) AS evidence,
+               COUNT(DISTINCT {icd}) AS icd_codes
+        FROM `{t}`
+        WHERE REGEXP_CONTAINS({norm}, r'{pre}')
+          AND {hcc} IS NOT NULL AND CAST({hcc} AS STRING) NOT IN ('', '0')
+        GROUP BY 1
+        ORDER BY 1
+        """.format(hcc=mp["hcc_v24"], norm=NORM.format(col=mp["icd_code"]),
+                   icd=mp["icd_code"], t=cfg.T_HCC_MAP,
+                   pre=DIABETES_ICD_PREFIX)
+    print("  diabetes HCC derivation: " + method)
+    df = cfg.run_query(sql, label="V7 diabetes HCCs")
+    df.insert(0, "derived_by", method)
+    return df
 
 
 def main():
@@ -98,25 +131,21 @@ def main():
     mp = cfg.resolved(cfg.T_HCC_MAP, MAP_SPEC)
     desc_col = cfg.resolve_col(cfg.T_HCC_MAP, MAP_DESC_PATTERNS,
                                pin="hcc_map.description", required=False)
-    if not desc_col:
-        raise SystemExit(
-            "no description column on {}. The diabetes HCC set cannot be "
-            "derived from the data. Identify the correct HCC values, pin the "
-            "description column in schema_map.PINS, and record the choice as a "
-            "numbered decision in 00_docs/data_decisions.md."
-            .format(cfg.T_HCC_MAP))
-    print("    description                -> {}".format(desc_col))
+    print("    description                -> {}".format(desc_col or "ABSENT"))
 
     hccs = diabetes_hccs(mp, desc_col)
     cfg.write_csv(hccs, "v7_diabetes_hcc_codes.csv")
     if not len(hccs):
-        raise SystemExit("no HCC description mentions diabetes. Inspect "
-                         "{} before continuing.".format(cfg.T_HCC_MAP))
+        raise SystemExit("no diabetes HCCs derived from {}. Inspect the "
+                         "mapping table before continuing."
+                         .format(cfg.T_HCC_MAP))
     hcc_list = sorted(set(hccs["hcc_v24"].tolist()))
     print("")
-    print("  diabetes HCCs found in the mapping table:")
-    for _, r in hccs.drop_duplicates("hcc_v24").iterrows():
-        print("    {:<6} {}".format(r["hcc_v24"], r["description"]))
+    print("  diabetes HCCs derived from the mapping table - confirm against "
+          "the CMS-HCC V24 definition (Q10):")
+    for _, r in hccs.iterrows():
+        print("    HCC {:<5} {:>6} codes   {}".format(
+            r["hcc_v24"], int(r["icd_codes"]), str(r["evidence"])[:70]))
     in_list = ", ".join("'{}'".format(h) for h in hcc_list)
 
     m = cfg.resolved(cfg.T_MEMBERSHIP, MEMBERSHIP_SPEC)
@@ -178,8 +207,6 @@ def main():
     c = cfg.resolved(cfg.T_CLAIM_LINE, CLAIM_SPEC)
     cdt = cfg.date_expr(cfg.T_CLAIM_LINE, c["service_date"])
     d = cfg.resolved(cfg.T_DX, DX_SPEC)
-    o = cfg.resolved(cfg.T_TOPLINE, TOPLINE_SPEC)
-    odt = cfg.date_expr(cfg.T_TOPLINE, o["service_date"])
 
     sql = """
     WITH dm AS (
@@ -192,18 +219,22 @@ def main():
       FROM `{t_mem}`
       WHERE EXTRACT(YEAR FROM {mdt}) = {y1} {sf}
     ),
-    all_pos AS (
-      SELECT DISTINCT l.{c_mid} AS member_id, TRUE AS flag
-      FROM `{t_cl}` l
-      JOIN `{t_dx}` x ON x.{d_cll} = l.{c_cll}
-      JOIN dm ON dm.icd_code = {dnorm}
+    y1_lines AS (
+      SELECT {c_mid} AS member_id, {c_cll} AS claim_line_id,
+             {tnorm} AS topline_code
+      FROM `{t_cl}`
       WHERE EXTRACT(YEAR FROM {cdt}) = {y1}
     ),
+    all_pos AS (
+      SELECT DISTINCT l.member_id, TRUE AS flag
+      FROM y1_lines l
+      JOIN `{t_dx}` x ON x.{d_cll} = l.claim_line_id
+      JOIN dm ON dm.icd_code = {dnorm}
+    ),
     top_line AS (
-      SELECT DISTINCT t.{o_mid} AS member_id, TRUE AS flag
-      FROM `{t_top}` t
-      JOIN dm ON dm.icd_code = {onorm}
-      WHERE EXTRACT(YEAR FROM {odt}) = {y1}
+      SELECT DISTINCT l.member_id, TRUE AS flag
+      FROM y1_lines l
+      JOIN dm ON dm.icd_code = l.topline_code
     )
     SELECT denom.business_line                             AS business_line,
            COUNT(*)                                        AS members,
@@ -218,11 +249,11 @@ def main():
                hcc=mp["hcc_v24"], hcc_list=in_list,
                mid=m["member_id"], book=book_sel, t_mem=cfg.T_MEMBERSHIP,
                mdt=mdt, y1=cfg.YEAR_1, sf=state_filter,
-               c_mid=c["member_id"], c_cll=c["claim_line_id"], t_cl=cfg.T_CLAIM_LINE,
+               c_mid=c["member_id"], c_cll=c["claim_line_id"],
+               tnorm=NORM.format(col=c["topline_dx"]),
+               t_cl=cfg.T_CLAIM_LINE, cdt=cdt,
                t_dx=cfg.T_DX, d_cll=d["claim_line_id"],
-               dnorm=NORM.format(col="x." + d["dx_code"]), cdt=cdt,
-               t_top=cfg.T_TOPLINE, o_mid=o["member_id"],
-               onorm=NORM.format(col="t." + o["dx_code"]), odt=odt)
+               dnorm=NORM.format(col="x." + d["dx_code"]))
 
     df = cfg.run_query(sql, label="V7 recovery")
     df["share_all_positions"] = df["diabetes_all_positions"] / df["members"]
@@ -263,6 +294,8 @@ def main():
     cfg.verdict("V7", "diabetes near 25-30% for Medicare and 8-12% for "
                       "commercial, and all-positions above top-line", result)
     print("  " + note)
+    print("  Top-line arm reads EMIS_CLAIM_LINE.{} per DD-01, not the A870800 "
+          "extract.".format(c["topline_dx"]))
     print("  Note: methodology section 3 records that the existing extract "
           "sees 29% of members with any HCC. This script measures diabetes "
           "only. The any-condition figure needs ms_dc_ref_ccir, whose location "

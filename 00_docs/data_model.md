@@ -20,6 +20,57 @@ date and the person who did it in `run_log.md`.
 
 ---
 
+## Operator-observed columns (2026-08-24, pre-discovery)
+
+Seeded into `schema_map.DEFAULTS`. These are operator attestations, not
+discovery output; the banner above still applies until `01_columns.py`
+confirms them. Provenance tiers:
+
+**Observed directly in a BigQuery SELECT * result grid** — probably complete,
+not certainly (the grid had a horizontal scrollbar):
+
+- `CLM_LN_X_ICD9_DX`: `claim_line_id`, `icd9_dx_cd` (ICD-10 content despite
+  the name; dotted — E11.9, F31.62, G43.909 seen), `member_id`, `poa_cd`,
+  `sequence_id` (STRING, zero-padded '01'; SAFE_CAST before ordering),
+  `ziw_target_timestamp` (audit), `ziw_workflow_run_id` (audit)
+
+**Used in working SQL in medicare_analysis:**
+
+- `EMIS_CLAIM_LINE`: `member_id`, `srv_start_dt`, `pri_icd9_dx_cd`,
+  `prcdr_cd`, `allowed_amt`, `business_ln_cd`, `summarized_srv_ind`,
+  `med_cost_ctg_cd`, `ntwk_srv_area_id`, `duplicate_ind`, `srv_prvdr_id`,
+  `member_county_cd`
+- `A870800_medicare_analysis_2025_claims`: `member_id`, `age_nbr`,
+  `gender_cd`, `mbr_county_cd`, `mbr_submarket`, `srv_start_dt`,
+  `pri_icd9_dx_cd`, `prcdr_cd`, `allowed_amt`, `business_ln_cd`,
+  `epdb_dw_prvdr_id`, `prvdr_county`, `prvdr_submarket`, `specialty_ctg_cd`
+  — no `claim_line_id`, consistent with methodology Appendix A (DD-01)
+- `HCC_ICD_Mapping_2025`: `diagnosis_code`, `HCC_v24`, `HCC_v28` — no
+  description column (DD-02)
+- `ms_dc_ref_ccir`: `icd_code`, `icd_description`, `chronic_indicator`
+- membership extract: `member_id`, `eff_dt`, `medical_ind`,
+  `business_ln_cd`, `age_nbr`, `gender_cd`, `county_nm`, `zip_cd`,
+  `state_postal_cd` — no death indicator (Q6)
+- `PROVIDER_DM`: `provider_id`, `epdb_dw_prvdr_id`, `specialty_ctg_cd`,
+  `zip_cd`, `county_nm`, `tin_owner_nm`
+
+**Named in docs, never exercised in any query — highest-risk names, no seeded
+default, resolver reports what it finds:**
+
+- `EMIS_CLAIM_LINE.claim_line_id` — the join key to the diagnosis table
+- `EMIS_CLAIM_LINE.plc_srv_cd` — expected to carry IP / OP / F
+- `EMIS_CLAIM_LINE.plc_srv_ctg_cd` — coarser rollup above it
+
+Codes carry dots on the claims side and not in the HCC mapping. Both sides are
+normalised with `UPPER(REPLACE(TRIM(x), '.', ''))` before any comparison.
+
+No value list has been seen for `plc_srv_cd`, `plc_srv_ctg_cd`,
+`business_ln_cd`, `specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`, or
+`medical_ind`. `11_value_profiles.py` profiles each; setting logic and the
+Medicare/commercial split cannot be written until those come back.
+
+---
+
 ## Tables
 
 Locations marked **unverified** were named in methodology.md Appendix A without
@@ -122,25 +173,27 @@ Every join below is proposed, not verified. V6
 
 ## Column names asserted in the task brief
 
-All thirteen are **unverified**. `01_columns.py` writes
-`01_brief_column_check.csv` marking each CONFIRMED or ABSENT and naming the
-table it was found on. Transfer that result here.
+None is discovery-confirmed yet. Provenance below is operator attestation
+(grid = seen in a result grid; sql = used in working SQL; never exercised =
+named in docs only). `01_columns.py` writes `01_brief_column_check.csv`
+marking each CONFIRMED or ABSENT against the live schema; transfer that result
+here.
 
-| Brief name | Exists | Found on | Type |
+| Brief name | Provenance | Expected on | Live schema |
 |---|---|---|---|
-| `claim_line_id` | not checked | | |
-| `sequence_id` | not checked | | |
-| `icd9_dx_cd` | not checked | | |
-| `poa_cd` | not checked | | |
-| `member_id` | not checked | | |
-| `plc_srv_cd` | not checked | | |
-| `plc_srv_ctg_cd` | not checked | | |
-| `med_cost_ctg_cd` | not checked | | |
-| `srv_prvdr_id` | not checked | | |
-| `epdb_dw_prvdr_id` | not checked | | |
-| `specialty_ctg_cd` | not checked | | |
-| `business_ln_cd` | not checked | | |
-| `srv_start_dt` | not checked | | |
+| `claim_line_id` | grid (dx table); never exercised on EMIS_CLAIM_LINE | CLM_LN_X_ICD9_DX; EMIS_CLAIM_LINE | not checked |
+| `sequence_id` | grid; STRING zero-padded | CLM_LN_X_ICD9_DX | not checked |
+| `icd9_dx_cd` | grid; ICD-10 content, dotted | CLM_LN_X_ICD9_DX | not checked |
+| `poa_cd` | grid; values unseen | CLM_LN_X_ICD9_DX | not checked |
+| `member_id` | grid + sql | dx, EMIS, topline, membership | not checked |
+| `plc_srv_cd` | never exercised | EMIS_CLAIM_LINE | not checked |
+| `plc_srv_ctg_cd` | never exercised | EMIS_CLAIM_LINE | not checked |
+| `med_cost_ctg_cd` | sql | EMIS_CLAIM_LINE | not checked |
+| `srv_prvdr_id` | sql | EMIS_CLAIM_LINE | not checked |
+| `epdb_dw_prvdr_id` | sql | topline, PROVIDER_DM | not checked |
+| `specialty_ctg_cd` | sql | topline, PROVIDER_DM | not checked |
+| `business_ln_cd` | sql | EMIS, topline, membership | not checked |
+| `srv_start_dt` | sql | EMIS, topline | not checked |
 
 ---
 
@@ -163,5 +216,8 @@ From methodology.md. The purpose is settled; the column that serves it is not.
 | Death indicator | Exclude patients not alive at the end of year two | Step 11 |
 | State | Florida scope | Step 5 |
 
-**Not yet located in any table:** death indicator, provider specialty, state.
-See `open_questions.md`.
+**Not yet located in any table:** death indicator (Q6), place of service (the
+two `plc_srv` columns are named but never exercised, Q11). Provider specialty
+and state now have operator-attested homes (`PROVIDER_DM.specialty_ctg_cd`,
+membership `state_postal_cd`) pending discovery confirmation. See
+`open_questions.md`.

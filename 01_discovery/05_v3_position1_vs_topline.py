@@ -1,15 +1,24 @@
 """
 WHAT   V3. For claim lines present in both tables, does diagnosis position 1 in
-       the illness table match the single diagnosis column on the existing
-       top-line extract? Proves the sequence number means position on the claim.
+       the illness table match the top-line diagnosis on the claim line itself?
+       Proves the sequence number means position on the claim.
 GRAIN  summary is one row; the sample is one row per disagreeing code pair
-INPUTS config.T_DX, config.T_TOPLINE
+INPUTS config.T_DX, config.T_CLAIM_LINE
 OUTPUT 01_discovery/output/v3_position1_vs_topline.csv
        01_discovery/output/v3_position1_disagreements.csv
 
 Pass  agreement above 95%
 Fail  agreement below 80% - the sequence means something else
 Gate 1 sign-off requires V3.
+
+The comparison target is EMIS_CLAIM_LINE.pri_icd9_dx_cd, not the A870800
+extract: the extract carries no claim_line_id (methodology Appendix A), so no
+claim-line-grain join from it is possible, and pri_icd9_dx_cd is the same
+top-line fact on the source table. See DD-01 in 00_docs/data_decisions.md.
+
+The claim_line_id on EMIS_CLAIM_LINE is one of the three highest-risk names in
+the build - named in prior docs, never exercised in a query. It has no seeded
+default; the resolver reports what it finds.
 
 Codes are compared with dots removed, trimmed and upper-cased on both sides, so
 a pure formatting difference is not read as a disagreement.
@@ -31,11 +40,12 @@ DX_SPEC = {
                  r".*icd.*dx.*cd", r".*dx.*cd"], "dx.dx_code"),
 }
 
-TOPLINE_SPEC = {
+CLAIM_SPEC = {
     "claim_line_id": ([r"claim_line_id", r"clm_ln_id",
-                       r".*clm_ln.*id", r".*claim_line.*id"], "topline.claim_line_id"),
-    "dx_code": ([r"icd9_dx_cd", r"(prmry|primary)_(icd9_)?dx_cd",
-                 r"(icd9?_)?dx_cd", r".*dx.*cd"], "topline.dx_code"),
+                       r".*clm_ln.*id", r".*claim_line.*id"],
+                      "claim_line.claim_line_id"),
+    "topline_dx": ([r"pri_icd9_dx_cd", r"(pri|prmry|primary)_(icd9?_)?dx_cd",
+                    r".*pri.*dx.*cd"], "claim_line.topline_dx"),
 }
 
 NORM = "UPPER(TRIM(REPLACE({col}, '.', '')))"
@@ -44,7 +54,7 @@ NORM = "UPPER(TRIM(REPLACE({col}, '.', '')))"
 def main():
     print("05_v3_position1_vs_topline")
     d = cfg.resolved(cfg.T_DX, DX_SPEC)
-    o = cfg.resolved(cfg.T_TOPLINE, TOPLINE_SPEC)
+    c = cfg.resolved(cfg.T_CLAIM_LINE, CLAIM_SPEC)
 
     base = """
     WITH pos1 AS (
@@ -54,9 +64,9 @@ def main():
       WHERE SAFE_CAST({d_seq} AS INT64) = 1
     ),
     old AS (
-      SELECT {o_cll} AS claim_line_id,
-             {o_norm} AS dx_topline
-      FROM `{t_old}`
+      SELECT {c_cll} AS claim_line_id,
+             {c_norm} AS dx_topline
+      FROM `{t_cl}`
     ),
     j AS (
       SELECT o.claim_line_id AS claim_line_id, p.dx_pos1, o.dx_topline
@@ -66,9 +76,9 @@ def main():
     """.format(d_cll=d["claim_line_id"],
                d_norm=NORM.format(col=d["dx_code"]),
                d_seq=d["sequence"], t_dx=cfg.T_DX,
-               o_cll=o["claim_line_id"],
-               o_norm=NORM.format(col=o["dx_code"]),
-               t_old=cfg.T_TOPLINE)
+               c_cll=c["claim_line_id"],
+               c_norm=NORM.format(col=c["topline_dx"]),
+               t_cl=cfg.T_CLAIM_LINE)
 
     summary_sql = base + """
     SELECT
@@ -85,7 +95,8 @@ def main():
 
     if not len(df) or not df.iloc[0]["compared_rows"]:
         raise SystemExit("no claim lines are present in both tables. "
-                         "Check the join key and that T_TOPLINE is correct.")
+                         "Check the join key on EMIS_CLAIM_LINE - it is one of "
+                         "the three never-exercised names.")
 
     r = df.iloc[0]
     rows = int(r["compared_rows"])

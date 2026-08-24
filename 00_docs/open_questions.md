@@ -24,7 +24,12 @@ Named in the task brief and methodology Appendix A with no project or dataset.
 ### Q2. Where is `A870800_medicare_analysis_2025_claims`?
 The existing top-line-only extract, named in methodology Appendix A without a
 location.
-**Blocks:** V3 and V7, both Gate 1 sign-off checks. Neither can run without it.
+**No longer blocks V3 or V7:** per DD-01 both now read the top-line diagnosis
+from `EMIS_CLAIM_LINE.pri_icd9_dx_cd`, since the extract carries no
+`claim_line_id` and cannot join at claim-line grain. The extract remains wanted
+as reference: it is the source of the 29% any-HCC figure, and its name
+suggests 2025 coverage — whether it covers 2023-2024 at all is part of this
+question.
 **Resolved by:** `00_list_tables.py`.
 **Status:** Open
 
@@ -45,8 +50,11 @@ diabetes only and says so in its output.
 `plc_srv_cd`, `plc_srv_ctg_cd`, `med_cost_ctg_cd`, `srv_prvdr_id`,
 `epdb_dw_prvdr_id`, `specialty_ctg_cd`, `business_ln_cd`, `srv_start_dt`.
 
-All thirteen are unverified. The brief states they are believed to exist, not
-that they do.
+Operator attestation now covers most of them (see the provenance table in
+`data_model.md` and `schema_map.DEFAULTS`), with three exceptions that remain
+named-but-never-exercised: `claim_line_id` on EMIS_CLAIM_LINE, `plc_srv_cd`,
+and `plc_srv_ctg_cd`. Discovery confirmation is still pending for all
+thirteen.
 **Resolved by:** `01_columns.py`, which writes `01_brief_column_check.csv`
 marking each CONFIRMED or ABSENT.
 **Status:** Open
@@ -55,19 +63,24 @@ marking each CONFIRMED or ABSENT.
 V6 must confirm the member identifier agrees on both sides of the claim-line
 join. Without a member column on the illness table that half of the check
 cannot run, and V6 reports UNVERIFIABLE rather than passing.
+**Update 2026-08-24:** `member_id` was observed on the table in a result grid
+and is seeded as a default. Likely closable once `01_columns.py` confirms it.
 **Blocks:** Gate 1 sign-off, which requires V6.
 **If absent:** another way to verify the join is needed before sign-off.
 **Status:** Open
 
 ### Q6. Where is the death indicator?
 Methodology step 11 requires excluding patients not alive at the end of year
-two. No table in Appendix A is identified as carrying date of death.
+two. No table in Appendix A is identified as carrying date of death, and the
+operator-confirmed membership columns do not include one.
 **Blocks:** the first fairness gate.
 **Status:** Open
 
 ### Q7. Where is provider specialty?
-Methodology step 14 compares doctors within specialty. The brief lists
-`specialty_ctg_cd` without saying which table holds it.
+Methodology step 14 compares doctors within specialty.
+**Update 2026-08-24:** operator attests `specialty_ctg_cd` on `PROVIDER_DM`
+and on the A870800 extract. What remains is PROVIDER_DM's location (Q1) and
+the value set (`11_value_profiles.py`).
 **Blocks:** peer comparison and the shrinkage in step 13.
 **Status:** Open
 
@@ -75,6 +88,9 @@ Methodology step 14 compares doctors within specialty. The brief lists
 Florida scope, methodology step 5. `09_v7_recovery_rate.py` applies a state
 filter only if it resolves a state column, and prints that the figures are
 all-states when it cannot.
+**Update 2026-08-24:** operator attests `state_postal_cd` on the membership
+extract; seeded as the default. Values unverified — `11_value_profiles.py`
+profiles them, and the FL filter is only trustworthy once 'FL' is seen there.
 **Blocks:** scoping every figure to Florida.
 **Status:** Open
 
@@ -92,15 +108,20 @@ later figure.
 **Status:** Open
 
 ### Q10. Which HCC values are diabetes?
-`09_v7_recovery_rate.py` derives the set by matching HCC descriptions
-containing "diabet" and prints what it found, rather than hardcoding HCC
-numbers. The derived set needs confirming against the CMS-HCC V24 definition.
+`09_v7_recovery_rate.py` derives the set from the mapping table: by
+description match where a description column exists, otherwise by ICD-10
+prefix E08-E13 (DD-02 — the confirmed mapping columns carry no description).
+It prints the derived HCCs with evidence. The derived set needs confirming
+against the CMS-HCC V24 definition.
 **Status:** Open
 
 ### Q11. Which place-of-service values mean office, hospital outpatient, inpatient?
 Methodology A3 records that setting can be told from the place-of-service code
-and that IP / OP / F are the values. Which column carries it, and the full code
-list, are unverified.
+and that IP / OP / F are the values. `plc_srv_cd` and `plc_srv_ctg_cd` are
+named in prior docs but never exercised in any query — with
+`EMIS_CLAIM_LINE.claim_line_id`, the highest-risk names in the build. No
+seeded default; the resolver reports what it finds, and
+`11_value_profiles.py` profiles the values.
 **Blocks:** the office-only score, which is the doctor-facing measure.
 **Status:** Open
 
@@ -158,4 +179,14 @@ Methodology section 11 records that the comparison to published work rests on
 the abstract and summary, not a full reading, and that someone should confirm
 the denominator construction — particularly deaths and continuous enrolment —
 before the framing is used externally.
+**Status:** Open
+
+### Q20. What does `medical_ind` mean, and should membership denominators filter on it?
+Operator-confirmed on the membership extract; values unseen. If it flags
+medical (vs dental/pharmacy-only) coverage, the denominators in V5 and V7
+should probably require it — a member without medical coverage cannot have
+claims. No script filters on it yet; `11_value_profiles.py` profiles the
+values.
+**Blocks:** nothing yet; potentially every denominator once answered.
+**Becomes:** a numbered decision in `data_decisions.md`.
 **Status:** Open

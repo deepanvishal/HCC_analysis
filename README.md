@@ -44,6 +44,7 @@ above `config.CONFIRM_GB` (default 50 GB) prompts before it runs. Set
 python 01_discovery/00_list_tables.py
 python 01_discovery/01_columns.py
 python 01_discovery/02_row_counts.py
+python 01_discovery/11_value_profiles.py
 ```
 
 Then write `00_docs/data_model.md` from `01_discovery/output/01_columns.csv`
@@ -75,21 +76,35 @@ of `00_docs/validation.md`.
 
 ## Column names
 
-No column name is hardcoded. `config.resolve_col` reads INFORMATION_SCHEMA at
-run time and returns the one column matching an ordered list of patterns. It
-raises on ambiguity, raises when nothing matches, and prints every column on
-the table so the right one can be pinned in `schema_map.PINS`.
+No column name is hardcoded in SQL. `config.resolve_col` resolves each one at
+run time: an operator pin in `schema_map.PINS` wins, then a seeded default in
+`schema_map.DEFAULTS` (operator-attested names, used when present in the live
+schema), then an INFORMATION_SCHEMA pattern search. It raises on ambiguity,
+raises when nothing matches, and prints the table's full actual column list so
+the correct name can be pasted back in one trip. Every script prints which real
+column it used and whether it came from a pin, a default, or a pattern.
 
-All thirteen column names asserted in the brief are unverified.
-`01_columns.py` writes `01_brief_column_check.csv` marking each CONFIRMED or
-ABSENT.
+Three names have no seeded default on purpose — named in prior docs but never
+exercised in a query: `EMIS_CLAIM_LINE.claim_line_id`, `plc_srv_cd`,
+`plc_srv_ctg_cd`. Setting logic and the diagnosis join depend on them; the
+resolver reports what it finds.
+
+The resolver is scaffolding for the first discovery trip. After it, resolved
+names go into `00_docs/data_model.md` and the scripts switch to explicit
+constants.
 
 ## Known gaps
 
 Three tables named in methodology Appendix A have no project or dataset:
 `PROVIDER_DM`, `A870800_medicare_analysis_2025_claims`, and `ms_dc_ref_ccir`.
-`00_list_tables.py` searches for them. The second and third are needed by V3
-and V7, both sign-off checks.
+`00_list_tables.py` searches for them. Per DD-01, V3 and V7 no longer depend
+on the A870800 extract; the CCIR table is still needed for the any-condition
+figure.
 
-Nineteen open questions are recorded in `00_docs/open_questions.md`, each with
+No value list has been seen for any code column (`plc_srv_cd`,
+`business_ln_cd`, `specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`,
+`medical_ind`). `11_value_profiles.py` profiles each; the setting groups and
+the Medicare/commercial split are written only after it comes back.
+
+Twenty open questions are recorded in `00_docs/open_questions.md`, each with
 what it blocks.

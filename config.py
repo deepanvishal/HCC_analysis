@@ -242,13 +242,19 @@ def _fail(table_fqn, patterns, cols, reason, hits=None):
 def resolve_col(table_fqn, patterns, pin=None, required=True):
     """The single column on table_fqn matching one of patterns.
 
-    patterns are full-match regexes, case-insensitive, tried most specific
-    first. The first pattern matching exactly one column wins. A pattern
-    matching more than one raises rather than guessing.
+    Resolution order:
+      1. schema_map.PINS[pin]     - operator override; must exist or the run fails
+      2. schema_map.DEFAULTS[pin] - seeded name; used when present in the live
+                                    schema, otherwise a note is printed and the
+                                    search falls through
+      3. patterns                 - full-match regexes, case-insensitive, most
+                                    specific first; a pattern matching more than
+                                    one column raises rather than guessing
+      4. failure                  - raises, printing the table's full actual
+                                    column list for one-trip paste-back
 
-    pin is a key into schema_map.PINS; a pinned name short-circuits the search
-    and is verified to exist. required=False returns None instead of raising
-    when nothing matches, for genuinely optional columns.
+    required=False returns None instead of raising when nothing matches, for
+    genuinely optional columns.
     """
     import schema_map
     cols = columns_of(table_fqn)
@@ -262,6 +268,14 @@ def resolve_col(table_fqn, patterns, pin=None, required=True):
                       "PINNED column {} (pin={}) does not exist"
                       .format(repr(pinned), repr(pin)))
             return pinned
+        default = schema_map.DEFAULTS.get(pin)
+        if default:
+            hit = [c for c in names if c.lower() == default.lower()]
+            if len(hit) == 1:
+                return hit[0]
+            print("  NOTE: seeded default {} (pin={}) is not on {}; "
+                  "falling back to pattern search"
+                  .format(repr(default), repr(pin), table_fqn))
 
     for pat in patterns:
         hits = [c for c in names if re.fullmatch(pat, c, re.IGNORECASE)]
@@ -303,14 +317,22 @@ def date_expr(table_fqn, col):
 def resolved(table_fqn, spec):
     """Resolve a {logical_name: (patterns, pin)} spec and print each result.
 
-    Returns {logical_name: actual_column_name}. Printing the mapping is part of
-    the output: every script states which real column it used."""
+    Returns {logical_name: actual_column_name}. Printing the mapping, with the
+    source of each name (pin, default, or pattern), is part of the output:
+    every script states which real column it used and how it got it."""
+    import schema_map
     out = {}
     print("  resolving columns on " + table_fqn)
     for logical in spec:
         args = spec[logical]
         patterns, pin = args if isinstance(args, tuple) else (args, None)
         col = resolve_col(table_fqn, patterns, pin=pin)
+        if pin and schema_map.PINS.get(pin):
+            src = "pin"
+        elif pin and schema_map.DEFAULTS.get(pin, "").lower() == col.lower():
+            src = "default"
+        else:
+            src = "pattern"
         out[logical] = col
-        print("    {:<26} -> {}".format(logical, col))
+        print("    {:<26} -> {}  [{}]".format(logical, col, src))
     return out

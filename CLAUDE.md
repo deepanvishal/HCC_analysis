@@ -168,15 +168,24 @@ every query, prints the bytes, and prompts above `config.CONFIRM_GB`. Set
 `HCC_YES=1` for batch runs. Never bypass the gate by calling the client
 directly.
 
-**Column names are resolved at run time, never hardcoded.**
-`config.resolve_col` reads INFORMATION_SCHEMA and returns the single column
-matching an ordered list of patterns. It raises on ambiguity and raises when
-nothing matches, printing every column on the table. It never guesses. Where it
-cannot decide, pin the name in `schema_map.PINS` and record why in
-`data_decisions.md`.
+**Column names come from the seeded resolver, never hardcoded in SQL.**
+Resolution order in `config.resolve_col`: `schema_map.PINS` (operator
+override, must exist), `schema_map.DEFAULTS` (operator-attested names, used
+when present in the live schema), then INFORMATION_SCHEMA pattern search. It
+raises on ambiguity and raises when nothing matches, printing the table's full
+actual column list so the correct name can be pasted back in one trip. It
+never guesses.
 
-Do not write a column name into SQL directly. Do not add a pin to work around a
-resolver failure without first checking that the column is the right one.
+Three names have no default on purpose — named in prior docs, never exercised
+in any query, and everything about setting and the diagnosis join depends on
+them: `EMIS_CLAIM_LINE.claim_line_id`, `plc_srv_cd`, `plc_srv_ctg_cd`. The
+resolver must find and report these.
+
+The resolver is scaffolding for the first discovery trip. Once discovery runs,
+record the resolved names in `data_model.md` and switch the scripts to explicit
+constants. Do not add a pin to work around a resolver failure without first
+checking that the column is the right one; every pin is a numbered decision in
+`data_decisions.md`.
 
 **Dates are not assumed to be DATE.** `config.date_expr` picks the conversion
 from the declared type and raises on a type it has no rule for.
@@ -187,7 +196,7 @@ from the declared type and raises on a type it has no rule for.
 
 ```
 config.py            client, constants, paths, cost gate, column resolver
-schema_map.py        pinned column names; empty by design
+schema_map.py        seeded default column names + operator pins
 00_docs/
   methodology.md     what we measure and why
   validation.md      the four gates
@@ -203,7 +212,8 @@ schema_map.py        pinned column names; empty by design
 ```
 
 Run order in `01_discovery`: `00_list_tables`, `01_columns`, `02_row_counts`,
-then `03` through `10` for V1 to V8, then `99_gate1_summary`.
+`11_value_profiles`, then `03` through `10` for V1 to V8, then
+`99_gate1_summary`.
 
 ---
 
@@ -212,8 +222,16 @@ then `03` through `10` for V1 to V8, then `99_gate1_summary`.
 Discovery and structure only. No extract or analysis code has been written, and
 none should be until Gate 1 signs off.
 
-Nineteen open questions are recorded, including three tables whose location is
-unknown and thirteen column names that are asserted but unverified. The two
-tables that V3 and V7 depend on — the existing top-line extract and the CCIR
-reference — are among the unlocated ones, and both of those checks are Gate 1
-sign-off requirements.
+Column names are seeded from operator observation (2026-08-24) in
+`schema_map.DEFAULTS`; none is discovery-confirmed yet. Two data decisions are
+recorded: DD-01 retargets V3 and V7's top-line arm to
+`EMIS_CLAIM_LINE.pri_icd9_dx_cd` (the A870800 extract carries no
+claim_line_id), and DD-02 derives the diabetes family from ICD-10 prefix
+E08-E13 when the mapping has no description column.
+
+Twenty open questions are recorded, including three tables whose location is
+unknown (`PROVIDER_DM`, the A870800 extract, `ms_dc_ref_ccir`) and the three
+never-exercised column names everything about setting and the diagnosis join
+depends on. No value list has been seen for any code column;
+`11_value_profiles.py` exists for that, and the setting logic and
+Medicare/commercial split cannot be written until it comes back.
