@@ -17,7 +17,7 @@ Table shorthands, all derived from the table names:
   hcc_map              HCC_ICD_Mapping_2025
   membership           A870800_medicare_analysis_membership
   provider             PROVIDER_DM
-  ccir                 ms_dc_ref_ccir
+  ccir                 A870800_medicare_supply_demand_ms_dc_ref_ccir
 
 Resolution order in config.resolve_col:
   1. PINS      operator override. Must exist on the table or the run fails.
@@ -88,12 +88,12 @@ DEFAULTS = {
     "membership.state_postal_cd": "state_postal_cd",
     "membership.medical_ind": "medical_ind",
 
-    # PROVIDER_DM - sql; location unresolved (Q1)
+    # PROVIDER_DM - sql; location from prior repo SQL (Q1)
     "provider.provider_id": "provider_id",
     "provider.epdb_dw_prvdr_id": "epdb_dw_prvdr_id",
     "provider.specialty_ctg_cd": "specialty_ctg_cd",
 
-    # ms_dc_ref_ccir - sql; location unresolved (Q3)
+    # ms_dc_ref_ccir - sql; location from prior repo SQL (Q3)
     "ccir.icd_code": "icd_code",
     "ccir.icd_description": "icd_description",
     "ccir.chronic_indicator": "chronic_indicator",

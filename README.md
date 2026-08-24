@@ -95,11 +95,12 @@ constants.
 
 ## Known gaps
 
-Three tables named in methodology Appendix A have no project or dataset:
-`PROVIDER_DM`, `A870800_medicare_analysis_2025_claims`, and `ms_dc_ref_ccir`.
-`00_list_tables.py` searches for them. Per DD-01, V3 and V7 no longer depend
-on the A870800 extract; the CCIR table is still needed for the any-condition
-figure.
+`PROVIDER_DM` and the CCIR table now carry locations from the prior repo's
+fully-qualified SQL (Q1, Q3 - answered, pending live confirmation). The
+A870800 extract's location is still unknown (Q2); per DD-01, V3 and V7 no
+longer depend on it. `00_list_tables.py` sweeps both datasets for all three
+as the safety net. The CCIR table is still needed for the any-condition
+figure, which no script computes yet.
 
 No value list has been seen for any code column (`plc_srv_cd`,
 `business_ln_cd`, `specialty_ctg_cd`, `med_cost_ctg_cd`, `poa_cd`,

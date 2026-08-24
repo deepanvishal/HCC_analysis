@@ -332,8 +332,8 @@ def main():
           "any-HCC figure and must not be presented as its replacement. The "
           "finding is the difference between the two arms.")
     print("  Note: this script measures diabetes only. The any-condition "
-          "figure needs ms_dc_ref_ccir, whose location is unresolved. See "
-          "00_docs/open_questions.md.")
+          "figure needs the CCIR table and is not built yet. See "
+          "00_docs/open_questions.md Q3.")
 
 
 if __name__ == "__main__":

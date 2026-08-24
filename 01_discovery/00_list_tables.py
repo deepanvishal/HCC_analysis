@@ -1,7 +1,10 @@
 """
-WHAT   Locate every table this analysis needs. Confirms the four tables whose
-       location is known and searches for the three named in methodology
-       Appendix A without a project or dataset.
+WHAT   Locate every table this analysis needs. Sweeps both datasets and
+       matches every needed table against what is actually there, rather than
+       trusting the locations in config. PROVIDER_DM and the CCIR table carry
+       locations from the prior repo's SQL and should resolve on the first
+       try; this sweep is the safety net for them and the search for the
+       A870800 extract, whose location is still a guess (Q2).
 GRAIN  one row per candidate table found in a searched dataset
 INPUTS INFORMATION_SCHEMA.TABLES on the datasets in config.SEARCH_DATASETS
 OUTPUT 01_discovery/output/00_tables_found.csv

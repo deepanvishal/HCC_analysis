@@ -38,12 +38,15 @@ T_CLAIM_LINE = edp("EMIS_CLAIM_LINE")                # claim lines / visits
 T_HCC_MAP    = dev("HCC_ICD_Mapping_2025")           # code -> HCC (field HCC_v24)
 T_MEMBERSHIP = dev("A870800_medicare_analysis_membership")
 
-# Location NOT confirmed. Named in methodology Appendix A without a project or
-# dataset. 01_discovery/00_list_tables.py searches for these.
-# See 00_docs/open_questions.md Q1-Q3. Values below are starting points only.
-T_PROVIDER_DM = dev("PROVIDER_DM")
+# Named in methodology Appendix A without a project or dataset.
+# PROVIDER_DM and the CCIR table: locations taken from fully-qualified
+# FROM/JOIN clauses in the prior medicare_analysis repo's SQL, pending live
+# confirmation (Q1, Q3 - answered). The A870800 extract remains a guess (Q2).
+# 01_discovery/00_list_tables.py sweeps both datasets for all three as the
+# safety net, not trusting these values.
+T_PROVIDER_DM = edp("PROVIDER_DM")
 T_A870800_2025_CLAIMS = dev("A870800_medicare_analysis_2025_claims")
-T_CCIR        = dev("ms_dc_ref_ccir")
+T_CCIR        = dev("A870800_medicare_supply_demand_ms_dc_ref_ccir")
 
 UNVERIFIED_TABLES = {
     "PROVIDER_DM": T_PROVIDER_DM,

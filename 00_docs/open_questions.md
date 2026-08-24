@@ -15,11 +15,12 @@ Status: **Open** | **Answered** (with pointer) | **Will not resolve**
 
 ### Q1. Where is `PROVIDER_DM`?
 Named in the task brief and methodology Appendix A with no project or dataset.
-`config.T_PROVIDER_DM` currently guesses
-`anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.PROVIDER_DM`.
-**Blocks:** all provider scoring (methodology steps 12–14).
-**Resolved by:** `00_list_tables.py`, which searches both datasets.
-**Status:** Open
+**Answer (2026-08-24):** `edp-prod-hcbstorage.edp_hcb_core_cnsv.PROVIDER_DM`.
+Taken from fully-qualified FROM/JOIN clauses in the prior medicare_analysis
+repo's SQL, not inferred. Recorded in `config.T_PROVIDER_DM` and
+`data_model.md`. `00_list_tables.py` still sweeps both datasets as the safety
+net; live confirmation lands with the first discovery run.
+**Status:** Answered
 
 ### Q2. Where is `A870800_medicare_analysis_2025_claims`?
 The existing top-line-only extract, named in methodology Appendix A without a
@@ -36,10 +37,16 @@ question.
 ### Q3. Where is `ms_dc_ref_ccir`?
 AHRQ CCIR v2026.1, the long-term-condition flag. Named in methodology
 Appendix A without a location.
-**Blocks:** the "any long-term condition" half of V7 — the figure that compares
-against the 29% the old extract reports. `09_v7_diabetes_share.py` measures
-diabetes only and says so in its output.
-**Status:** Open
+**Answer (2026-08-24):**
+`anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_supply_demand_ms_dc_ref_ccir`
+— the methodology's short name is a suffix of the real table name. Taken from
+fully-qualified FROM/JOIN clauses in the prior medicare_analysis repo's SQL,
+not inferred. Recorded in `config.T_CCIR` and `data_model.md`.
+`00_list_tables.py` still sweeps both datasets as the safety net.
+The "any long-term condition" half of V7 remains unbuilt —
+`09_v7_diabetes_share.py` measures diabetes only and says so in its output —
+but is no longer blocked on location.
+**Status:** Answered
 
 ---
 
@@ -79,8 +86,8 @@ operator-confirmed membership columns do not include one.
 ### Q7. Where is provider specialty?
 Methodology step 14 compares doctors within specialty.
 **Update 2026-08-24:** operator attests `specialty_ctg_cd` on `PROVIDER_DM`
-and on the A870800 extract. What remains is PROVIDER_DM's location (Q1) and
-the value set (`11_value_profiles.py`).
+and on the A870800 extract. PROVIDER_DM's location is now answered (Q1); what
+remains is the value set (`11_value_profiles.py`).
 **Blocks:** peer comparison and the shrinkage in step 13.
 **Status:** Open
 

@@ -245,9 +245,10 @@ recorded: DD-01 retargets V3 and V7's top-line arm to
 claim_line_id), and DD-02 derives the diabetes family from ICD-10 prefix
 E08-E13 when the mapping has no description column.
 
-Twenty open questions are recorded, including three tables whose location is
-unknown (`PROVIDER_DM`, the A870800 extract, `ms_dc_ref_ccir`) and the three
-never-exercised column names everything about setting and the diagnosis join
-depends on. No value list has been seen for any code column;
+Twenty questions are recorded, eighteen still open. `PROVIDER_DM` and the
+CCIR table have locations from the prior repo's SQL (Q1, Q3 - answered); the
+A870800 extract's location is still unknown (Q2). The three never-exercised
+column names everything about setting and the diagnosis join depends on
+remain unconfirmed. No value list has been seen for any code column;
 `11_value_profiles.py` exists for that, and the setting logic and
 Medicare/commercial split cannot be written until it comes back.

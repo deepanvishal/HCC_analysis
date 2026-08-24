@@ -73,9 +73,10 @@ Medicare/commercial split cannot be written until those come back.
 
 ## Tables
 
-Locations marked **unverified** were named in methodology.md Appendix A without
-a project or dataset. `00_list_tables.py` searches for them; see
-`open_questions.md` Q1–Q3.
+PROVIDER_DM and the CCIR table locations come from fully-qualified FROM/JOIN
+clauses in the prior medicare_analysis repo's SQL, pending live confirmation
+(Q1, Q3 - answered). The A870800 extract's location remains **unverified**
+(Q2). `00_list_tables.py` sweeps both datasets for all three.
 
 | Purpose | Table | Location | Grain | Row count |
 |---|---|---|---|---|
@@ -83,9 +84,9 @@ a project or dataset. `00_list_tables.py` searches for them; see
 | Claim lines / visits | `EMIS_CLAIM_LINE` | `edp-prod-hcbstorage.edp_hcb_core_cnsv` | not verified | not verified |
 | Code to condition | `HCC_ICD_Mapping_2025` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev` | not verified | not verified |
 | Coverage months | `A870800_medicare_analysis_membership` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev` | not verified | not verified |
-| Doctor detail | `PROVIDER_DM` | **unverified** | not verified | not verified |
+| Doctor detail | `PROVIDER_DM` | `edp-prod-hcbstorage.edp_hcb_core_cnsv` (prior repo SQL, Q1) | not verified | not verified |
 | Existing top-line extract | `A870800_medicare_analysis_2025_claims` | **unverified** | not verified | not verified |
-| Long-term condition flag | `ms_dc_ref_ccir` | **unverified** | not verified | not verified |
+| Long-term condition flag | `ms_dc_ref_ccir` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev`, real name `A870800_medicare_supply_demand_ms_dc_ref_ccir` (prior repo SQL, Q3) | not verified | not verified |
 
 ---
 
