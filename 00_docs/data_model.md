@@ -39,11 +39,13 @@ not certainly (the grid had a horizontal scrollbar):
   `prcdr_cd`, `allowed_amt`, `business_ln_cd`, `summarized_srv_ind`,
   `med_cost_ctg_cd`, `ntwk_srv_area_id`, `duplicate_ind`, `srv_prvdr_id`,
   `member_county_cd`
-- `A870800_medicare_analysis_2025_claims`: `member_id`, `age_nbr`,
-  `gender_cd`, `mbr_county_cd`, `mbr_submarket`, `srv_start_dt`,
+- `A870800_medicare_analysis_2025_claims`, per the operator's EDA brief
+  (2026-08-24; the table was rebuilt after Gate 1 and now carries
+  `claim_line_id` - DD-01 correction): `claim_line_id`, `member_id`,
+  `age_nbr`, `gender_cd`, `mbr_county_cd`, `mbr_submarket`, `srv_start_dt`,
   `pri_icd9_dx_cd`, `prcdr_cd`, `allowed_amt`, `business_ln_cd`,
-  `epdb_dw_prvdr_id`, `prvdr_county`, `prvdr_submarket`, `specialty_ctg_cd`
-  — no `claim_line_id`, consistent with methodology Appendix A (DD-01)
+  `epdb_dw_prvdr_id`, `prvdr_county`, `prvdr_submarket`, `specialty_ctg_cd`.
+  Verified live by `eda_0a_curated_columns.sql`
 - `HCC_ICD_Mapping_2025`: `diagnosis_code`, `HCC_v24`, `HCC_v28` — no
   description column (DD-02)
 - `ms_dc_ref_ccir`: `icd_code`, `icd_description`, `chronic_indicator`
@@ -77,9 +79,9 @@ those come back.
 ## Tables
 
 PROVIDER_DM and the CCIR table locations come from fully-qualified FROM/JOIN
-clauses in the prior medicare_analysis repo's SQL, pending live confirmation
-(Q1, Q3 - answered). The A870800 extract's location remains **unverified**
-(Q2). `01_columns.sql` searches both datasets for the extract's name.
+clauses in the prior medicare_analysis repo's SQL; the rebuilt A870800
+extract's location comes from the operator's EDA brief (Q1, Q2, Q3 - all
+answered). All pend live confirmation on the first console run.
 
 | Purpose | Table | Location | Grain | Row count |
 |---|---|---|---|---|
@@ -88,7 +90,7 @@ clauses in the prior medicare_analysis repo's SQL, pending live confirmation
 | Code to condition | `HCC_ICD_Mapping_2025` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev` | not verified | not verified |
 | Coverage months | `A870800_medicare_analysis_membership` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev` | not verified | not verified |
 | Doctor detail | `PROVIDER_DM` | `edp-prod-hcbstorage.edp_hcb_core_cnsv` (prior repo SQL, Q1) | not verified | not verified |
-| Existing top-line extract | `A870800_medicare_analysis_2025_claims` | **unverified** | not verified | not verified |
+| Existing top-line extract, rebuilt; EDA base table | `A870800_medicare_analysis_2025_claims` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev` (operator brief, Q2) | not verified | not verified |
 | Long-term condition flag | `ms_dc_ref_ccir` | `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev`, real name `A870800_medicare_supply_demand_ms_dc_ref_ccir` (prior repo SQL, Q3) | not verified | not verified |
 
 ---

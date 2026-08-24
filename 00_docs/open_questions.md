@@ -25,14 +25,15 @@ there means it is not where the prior repo's SQL says.
 ### Q2. Where is `A870800_medicare_analysis_2025_claims`?
 The existing top-line-only extract, named in methodology Appendix A without a
 location.
-**No longer blocks V3 or V7:** per DD-01 both now read the top-line diagnosis
-from `EMIS_CLAIM_LINE.pri_icd9_dx_cd`, since the extract carries no
-`claim_line_id` and cannot join at claim-line grain. The extract remains wanted
-as reference: it is the source of the 29% any-HCC figure, and its name
-suggests 2025 coverage — whether it covers 2023-2024 at all is part of this
-question.
-**Resolved by:** `01_columns.sql`, which searches both datasets for the name.
-**Status:** Open
+**Answer (2026-08-24):**
+`anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_2025_claims`,
+given in the operator's EDA brief. The table was rebuilt after Gate 1 was
+written and now carries `claim_line_id` (DD-01 correction) and service dates
+for 2023-2025; `eda_0d_inherited_scope.sql` Query D puts the actual date
+range on the record. Live confirmation: `eda_0a_curated_columns.sql`
+returning its column list. It remains the source of the 29% any-HCC figure
+and is now the base table of the Step 1 EDA.
+**Status:** Answered
 
 ### Q3. Where is `ms_dc_ref_ccir`?
 AHRQ CCIR v2026.1, the long-term-condition flag. Named in methodology

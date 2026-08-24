@@ -91,6 +91,14 @@ arms. The 29% any-HCC figure from the old extract remains context only.
 
 **Status:** Active
 
+**Correction (2026-08-24):** the extract was rebuilt after Gate 1 was written
+and now carries `claim_line_id`; its location is also now known (Q2,
+answered). The no-join-key premise above no longer holds. The retarget was
+correct at the time on the grounds listed - no join key in the table as it
+then existed, location unknown - and V3, V6 and V7 stay pointed at
+EMIS_CLAIM_LINE. The rebuilt extract is the base table of the Step 1 EDA
+(`eda_*.sql`). Original entry unedited above.
+
 ## DD-02  Diabetes family derived from ICD-10 prefix E08-E13 when the mapping has no description
 
 **Decision:** when `HCC_ICD_Mapping_2025` has no description column, the
