@@ -1,7 +1,8 @@
 # HCC coding consistency
 
 Measures whether providers re-document chronic conditions year over year.
-Phase 1: diabetes, Florida, 2023 vs 2024, CMS-HCC V24.
+Phase 1: diabetes, Florida, Medicare only, 2023 vs 2024, CMS-HCC V24. The
+Medicare scope is applied on claims, not membership (DD-06).
 
 The prior `medicare_analysis` extract kept only the primary diagnosis per claim
 line and sees 29% of members with any HCC, which is far too low.
@@ -56,6 +57,9 @@ back: `00_docs/run_order.md`.
 - `A870800_medicare_analysis_2025_claims` has no confirmed location (Q2) and
   is dropped from Gate 1; `01_columns.sql` still searches for it.
 - No value list has been seen for any code column; `11_value_profiles.sql`
-  exists for that. The setting groups and the Medicare/commercial split are
-  written only after it comes back.
+  exists for that. The setting groups are written only after it comes back.
+- The curated membership mixes Medicare and commercial with no way to tell
+  them apart - its build filtered on business_ln_cd without keeping the
+  column. Business line is out of Gate 1 entirely; the extract's Medicare
+  scope comes from claims (DD-06).
 - Open questions, each with what it blocks: `00_docs/open_questions.md`.

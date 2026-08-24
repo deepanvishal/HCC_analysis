@@ -109,11 +109,17 @@ and the FL filter is only trustworthy once 'FL' is seen there.
 
 ### Q9. Which business line codes are Medicare and which are commercial?
 Methodology step 5 requires the two books never be combined.
-`09_v7_diabetes_share.sql` reports raw business line values and does not assign
-them, because guessing here would silently blend the books.
-**Blocks:** V7's pass criterion, which has separate bands per book, and every
-later figure.
-**Becomes:** a numbered decision in `data_decisions.md`.
+**Update 2026-08-24 (DD-06):** business line is out of Gate 1 entirely - no
+split, no profile, no per-book bands. The curated membership cannot
+distinguish the books (its build filtered to `business_ln_cd IN ('CP','ME')`
+without keeping the column), so the Medicare scope for the analysis is
+applied on claims - `EMIS_CLAIM_LINE.business_ln_cd` - or from the raw
+`edp-prod-hcbstorage.edp_hcb_core_cnsv.EMIS_MEMBERSHIP`, which has the
+column. Which value means Medicare (presumably 'ME', with 'CP' commercial)
+still needs confirming before the extract filters on it.
+**Blocks:** the extract's Medicare scope, not Gate 1.
+**Becomes:** a numbered decision in `data_decisions.md` when the extract is
+written.
 **Status:** Open
 
 ### Q10. Which HCC values are diabetes?

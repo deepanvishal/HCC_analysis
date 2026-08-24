@@ -200,3 +200,40 @@ decided in DD-06.
 **Raised by:** operator, against test_sql.sql lines 123-140. **Date:** 2026-08-24.
 
 **Status:** Active
+
+## DD-06  Medicare only; business line removed from Gate 1
+
+**Decision:** the analysis is scoped to Medicare, and business line is out of
+Gate 1 entirely - no split, no value profile, no per-book bands, no both-books
+member count. V7 reports a single figure: diabetes share from pri_icd9_dx_cd
+versus every position, and the difference between them, with no band
+assignment. Membership is used for coverage months only.
+
+**Alternatives:** split the membership denominator by book - impossible, the
+curated table carries no book column (DD-05); join membership to claims or to
+the raw EMIS_MEMBERSHIP inside Gate 1 to label books - adds a join whose
+integrity V6 has not yet established, to a gate whose job is establishing it.
+
+**Rationale:** the curated membership cannot distinguish Medicare from
+commercial: its build applies `business_ln_cd IN ('CP','ME')` as a filter
+without keeping the column, so both books are present, mixed, unlabelled. Any
+book split built on it would be a guess. The Medicare scope is applied on
+claims - `EMIS_CLAIM_LINE.business_ln_cd` - or from the raw
+`edp-prod-hcbstorage.edp_hcb_core_cnsv.EMIS_MEMBERSHIP`, which has the
+column, when the extract is built. Which value means Medicare still needs
+confirming (Q9).
+
+**Consequences:** V7's per-book pass bands from validation.md (25-30%
+Medicare, 8-12% commercial) are dropped - the one recorded deviation from the
+validation criteria. V7's absolute level has no benchmark and is a
+data-quality figure over a mixed population, not a reportable prevalence; the
+difference between its two arms is the check. The never-blend rule is
+unaffected for everything downstream: once the claims-side scope exists, no
+reported figure blends the books.
+
+**Affects:** V7 (single row, bands dropped); 11_value_profiles (no
+business_ln_cd profile); Q9 rescoped to the extract.
+
+**Raised by:** operator. **Date:** 2026-08-24.
+
+**Status:** Active

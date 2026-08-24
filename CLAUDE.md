@@ -4,9 +4,9 @@
 
 When a patient has a long-term illness, does their doctor write it down again
 the following year? Phase 1 measures one condition — diabetes — in Florida,
-comparing 2023 with 2024 under CMS-HCC V24, and reports what share of patients
-a doctor recorded as diabetic in the first year that same doctor recorded again
-in the second.
+Medicare only (DD-06), comparing 2023 with 2024 under CMS-HCC V24, and reports
+what share of patients a doctor recorded as diabetic in the first year that
+same doctor recorded again in the second.
 
 The goal is that the record matches the patient. It is not that more gets
 recorded.
@@ -107,9 +107,13 @@ These are not style preferences. Each one prevents a specific wrong result.
 
 **Never blend Medicare and commercial into one figure.** Commercial members are
 decades younger with a fraction of the long-term illness, and
-employer-sponsored coverage is not risk-adjusted at all. Every figure carries
-its book. Medicare is reported first. This is why 09 produces no all-book
-total.
+employer-sponsored coverage is not risk-adjusted at all. The analysis is
+Medicare only, scoped on claims (DD-06): the curated membership cannot label
+books at all - its build filtered to business_ln_cd IN ('CP','ME') without
+keeping the column - so business line is out of Gate 1 entirely, and V7's
+single figure covers that mixed, unlabelled population as a data-quality
+check, not a reportable prevalence. No reported figure downstream may blend
+the books once the claims-side scope is applied.
 
 **Never write anything that reads as encouraging providers to code more.** Any
 material that appears to encourage recording conditions to raise revenue is a
@@ -171,7 +175,9 @@ Flat SQL files at the repo root, numbered, nothing importing anything.
 -- ON FAILURE  what to do
 ```
 
-Criteria are carried from `00_docs/validation.md`, never rewritten.
+Criteria are carried from `00_docs/validation.md`, never rewritten. One
+recorded deviation: V7's per-book bands are dropped because membership cannot
+label the books (DD-06).
 
 One query per file, or a small number of clearly separated queries with a
 comment saying to run them one at a time. Fully-qualified table names inline —
@@ -205,13 +211,18 @@ Run order: 01, 02, 11, then the stop point (rewrite data_model.md), then
 
 ## Current state
 
-Gate 1 exists as SQL and has not been run. Two of twenty questions are
-answered (Q1, Q3 — table locations from the prior repo's SQL); the A870800
-extract's location is still unknown (Q2) and that table is dropped from
-Gate 1. Three data decisions are recorded: DD-01 (top-line source is
+Gate 1 exists as SQL and has not been run. Three of twenty questions are
+answered (Q1, Q3 — table locations from the prior repo's SQL; Q20 —
+medical_ind is a build filter, not a column); the A870800 extract's location
+is still unknown (Q2) and that table is dropped from Gate 1. Six data
+decisions are recorded: DD-01 (top-line source is
 EMIS_CLAIM_LINE.pri_icd9_dx_cd, with the claim_line_id dependency and the
 29%-comparability caveat), DD-02 (diabetes family derived from the mapping by
-ICD-10 prefix E08-E13), DD-03 (Gate 1 as plain SQL, no Python).
+ICD-10 prefix E08-E13), DD-03 (Gate 1 as plain SQL, no Python), DD-04
+(membership dates are eff_yr/eff_mo, cast from STRING), DD-05 (membership
+columns from the build SQL; four asserted names were wrong), DD-06 (Medicare
+only; business line out of Gate 1; the curated membership mixes both books
+unlabelled, so the Medicare scope is applied on claims).
 
 No extract or analysis code exists, and none is written until Gate 1 signs
 off.

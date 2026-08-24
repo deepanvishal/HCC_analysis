@@ -40,7 +40,7 @@ needed is on this page.
 |---|---|---|---|
 | 1 | `01_columns.sql` | metadata only | actual columns and types, all tables |
 | 2 | `02_row_counts.sql` | metadata only | row counts and sizes |
-| 3 | `11_value_profiles.sql` (9 queries) | single-column scans of large tables | value sets for every code column |
+| 3 | `11_value_profiles.sql` (6 queries) | single-column scans of large tables | value sets for every code column |
 
 ## STOP POINT
 
@@ -62,7 +62,7 @@ validation.md.
 | 7 | `06_v4_year_completeness.sql` (2 queries) | V4 | date scan of EMIS_CLAIM_LINE - large |
 | 8 | `07_v5_member_id_stability.sql` (3 queries) | V5 | membership scans plus one large claims join |
 | 9 | `08_v6_join_integrity.sql` (2 queries) | V6 | joins two large tables |
-| 10 | `09_v7_diabetes_share.sql` (4 queries) | V7 | Query D is the heaviest in Gate 1 |
+| 10 | `09_v7_diabetes_share.sql` (2 queries) | V7 | Query B is the heaviest in Gate 1 |
 | 11 | `10_v8_code_mapping.sql` (3 queries) | V8 | code column scans - moderate |
 
 Stop rules:
