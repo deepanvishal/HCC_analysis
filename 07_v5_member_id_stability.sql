@@ -19,9 +19,10 @@
 -- NOTES  The membership grain is not assumed: Query A reports rows per
 --        member per year. Confirm the grain against data_model.md before
 --        reading Queries B and C.
---        eff_dt's type is unverified; EXTRACT and DATE_TRUNC work for DATE,
---        DATETIME and TIMESTAMP. If it errors, adjust by hand and record the
---        real type in data_model.md.
+--        The membership table carries eff_yr and eff_mo, both STRING - not
+--        eff_dt, which exists only on the raw EMIS_MEMBERSHIP (DD-04). Both
+--        are cast to INT64 before comparing, as the prior repo's build SQL
+--        does.
 --        Three queries. Run them one at a time. Membership scans plus one
 --        claims join - the claims join is large.
 -- ===========================================================================
@@ -31,11 +32,11 @@
 WITH per_member_year AS (
   SELECT
     member_id,
-    EXTRACT(YEAR FROM eff_dt) AS yr,
+    CAST(eff_yr AS INT64) AS yr,
     COUNT(*) AS rows_in_year,
-    COUNT(DISTINCT DATE_TRUNC(eff_dt, MONTH)) AS distinct_months
+    COUNT(DISTINCT CAST(eff_mo AS INT64)) AS distinct_months
   FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-  WHERE EXTRACT(YEAR FROM eff_dt) IN (2023, 2024)
+  WHERE CAST(eff_yr AS INT64) IN (2023, 2024)
   GROUP BY 1, 2
 )
 SELECT rows_in_year, distinct_months, COUNT(*) AS member_years
@@ -49,10 +50,10 @@ LIMIT 100;
 WITH cov AS (
   SELECT
     member_id,
-    EXTRACT(YEAR FROM eff_dt) AS yr,
-    COUNT(DISTINCT DATE_TRUNC(eff_dt, MONTH)) AS months
+    CAST(eff_yr AS INT64) AS yr,
+    COUNT(DISTINCT CAST(eff_mo AS INT64)) AS months
   FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-  WHERE EXTRACT(YEAR FROM eff_dt) IN (2023, 2024)
+  WHERE CAST(eff_yr AS INT64) IN (2023, 2024)
   GROUP BY 1, 2
 ),
 piv AS (
@@ -89,9 +90,9 @@ WITH clm AS (
 cov AS (
   SELECT DISTINCT
     member_id,
-    EXTRACT(YEAR FROM eff_dt) AS yr
+    CAST(eff_yr AS INT64) AS yr
   FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-  WHERE EXTRACT(YEAR FROM eff_dt) IN (2023, 2024)
+  WHERE CAST(eff_yr AS INT64) IN (2023, 2024)
 )
 SELECT
   clm.yr,

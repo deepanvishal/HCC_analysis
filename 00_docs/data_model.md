@@ -47,9 +47,10 @@ not certainly (the grid had a horizontal scrollbar):
 - `HCC_ICD_Mapping_2025`: `diagnosis_code`, `HCC_v24`, `HCC_v28` — no
   description column (DD-02)
 - `ms_dc_ref_ccir`: `icd_code`, `icd_description`, `chronic_indicator`
-- membership extract: `member_id`, `eff_dt`, `medical_ind`,
-  `business_ln_cd`, `age_nbr`, `gender_cd`, `county_nm`, `zip_cd`,
-  `state_postal_cd` — no death indicator (Q6)
+- membership extract: `member_id`, `eff_yr`, `eff_mo` (both STRING, cast to
+  INT64 before comparing; `eff_dt` exists only on the raw EMIS_MEMBERSHIP,
+  DD-04), `medical_ind`, `business_ln_cd`, `age_nbr`, `gender_cd`,
+  `county_nm`, `zip_cd`, `state_postal_cd` — no death indicator (Q6)
 - `PROVIDER_DM`: `provider_id`, `epdb_dw_prvdr_id`, `specialty_ctg_cd`,
   `zip_cd`, `county_nm`, `tin_owner_nm`
 

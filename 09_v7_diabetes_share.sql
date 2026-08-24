@@ -69,7 +69,7 @@ SELECT
   business_ln_cd,
   COUNT(DISTINCT member_id) AS members
 FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-WHERE EXTRACT(YEAR FROM eff_dt) = 2023
+WHERE CAST(eff_yr AS INT64) = 2023
   AND UPPER(TRIM(state_postal_cd)) = 'FL'
 GROUP BY 1
 ORDER BY members DESC;
@@ -80,7 +80,7 @@ ORDER BY members DESC;
 WITH per_member AS (
   SELECT member_id, COUNT(DISTINCT business_ln_cd) AS business_ln_cd_values
   FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-  WHERE EXTRACT(YEAR FROM eff_dt) = 2023
+  WHERE CAST(eff_yr AS INT64) = 2023
     AND UPPER(TRIM(state_postal_cd)) = 'FL'
   GROUP BY 1
 )
@@ -107,7 +107,7 @@ dm AS (
 denom AS (
   SELECT DISTINCT member_id, business_ln_cd
   FROM `anbc-hcb-dev.provider_ds_netconf_data_hcb_dev.A870800_medicare_analysis_membership`
-  WHERE EXTRACT(YEAR FROM eff_dt) = 2023
+  WHERE CAST(eff_yr AS INT64) = 2023
     AND UPPER(TRIM(state_postal_cd)) = 'FL'
 ),
 y1_lines AS (

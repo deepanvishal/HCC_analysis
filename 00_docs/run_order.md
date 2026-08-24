@@ -28,9 +28,8 @@ needed is on this page.
   V7 cannot run and Gate 1 cannot sign off (DD-01).
 - `Not found: Table ...` — the table is not at that location. Stop on that
   file; log in open_questions.md.
-- A type error on EXTRACT or DATE_TRUNC — `srv_start_dt` or `eff_dt` is not a
-  date type. Adjust the cast by hand and record the real type in
-  data_model.md.
+- A type error on EXTRACT — `srv_start_dt` is not a date type. Adjust the
+  cast by hand and record the real type in data_model.md.
 - An empty result where rows were expected — say so; do not fill anything in.
 - A `PASSES` criterion not met — expected output, not an error. The header of
   each file says what to do.

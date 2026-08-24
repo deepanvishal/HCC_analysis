@@ -147,3 +147,28 @@ across unchanged from validation.md.
 **Raised by:** operator, 2026-08-24 session. **Date:** 2026-08-24.
 
 **Status:** Active
+
+## DD-04  Membership dates are eff_yr and eff_mo, cast from STRING
+
+**Decision:** every membership date reference reads `eff_yr` and `eff_mo`,
+each `CAST(... AS INT64)` before any comparison. All
+`EXTRACT(YEAR FROM eff_dt)` predicates on the membership table are replaced.
+
+**Alternatives:** none once the schema is known; `eff_dt` does not exist on
+the curated table.
+
+**Rationale:** `eff_dt` was asserted in error. The prior repo splits the raw
+date during its build (test_sql.sql: `extract(year from eff_dt) as eff_yr`);
+`eff_dt` exists only on the raw EMIS_MEMBERSHIP, and the curated
+A870800_medicare_analysis_membership carries `eff_yr` and `eff_mo`, both
+stored as STRING. The prior repo casts both to INT64 before comparing; this
+repo does the same. Corrected against the prior repo's build SQL, not
+inferred.
+
+**Affects:** V5 (all three queries: the grain probe's distinct_months now
+counts distinct `eff_mo` values, the presence pivot, the claims
+cross-check) and V7 (the 2023 membership denominators in Queries B, C, D).
+
+**Raised by:** operator, against the prior repo's build SQL. **Date:** 2026-08-24.
+
+**Status:** Active
